@@ -1,0 +1,121 @@
+# Docker file for ROS-noetic and gazebo 11
+
+FROM ros:noetic-ros-base-focal
+
+ARG DEBIAN_FRONTEND=noninteractive
+ARG UID=1000
+ARG GID=1000
+
+###### USER root ######
+
+# install libraries and ros packages 
+
+RUN apt-key adv --keyserver 'hkp://keyserver.ubuntu.com:80' --recv-key C1CF6E31E6BADE8868B172B4F42ED6FBAB17C654
+
+RUN apt-get update && \
+    apt-get install -y  --no-install-recommends \
+        tmux less sudo nano xterm git cmake libpoco-dev libeigen3-dev \
+        mesa-utils libgl1-mesa-glx \
+        python3-pip \
+        ros-noetic-gazebo-ros-pkgs ros-noetic-gazebo-ros-control \
+        ros-noetic-moveit ros-noetic-tf-conversions \
+        ros-noetic-robot-state-publisher \
+        ros-noetic-joint-trajectory-controller ros-noetic-joint-state-controller \
+        ros-noetic-gripper-action-controller ros-noetic-position-controllers \
+        ros-noetic-rqt ros-noetic-rqt-common-plugins
+
+
+
+# User: robot (password: robot) with sudo power
+
+RUN useradd -ms /bin/bash robot && echo "robot:robot" | chpasswd && adduser robot sudo
+
+RUN usermod -u $UID robot && groupmod -g $GID robot
+
+
+###### USER robot ######
+
+USER robot
+
+RUN echo "set -g mouse on" > $HOME/.tmux.conf 
+RUN touch ~/.sudo_as_admin_successful
+
+
+### ROS ###
+
+# Init ROS workspace
+
+RUN mkdir -p $HOME/ros/catkin_ws/src
+
+RUN /bin/bash -c "source /opt/ros/noetic/setup.bash && cd $HOME/ros/catkin_ws/src && catkin_init_workspace && cd .. && catkin_make"
+
+#RUN rosdep update
+
+
+
+# Set up .bashrc
+
+RUN echo "" >> $HOME/.bashrc
+RUN echo "source $HOME/ros/catkin_ws/devel/setup.bash" >> $HOME/.bashrc
+RUN echo "" >> $HOME/.bashrc
+
+# Check catkin_make
+
+RUN /bin/bash -ci "cd $HOME/ros/catkin_ws; catkin_make"
+
+
+# Link repos
+
+RUN mkdir -p $HOME/src && cd $HOME/src && \
+    git clone https://github.com/gennari/tcp_interface.git tcp_interface && \
+    cd $HOME/ros/catkin_ws/src && \
+    ln -s $HOME/src/tcp_interface .
+
+
+RUN cd /home/robot/ros/catkin_ws && \
+    rosdep update
+
+USER root
+
+RUN apt update && \
+    cd /home/robot/ros/catkin_ws && \
+    rosdep install --from-paths src --ignore-src --rosdistro=noetic -y -r
+
+#    apt-get clean && \
+#    rm -rf /var/lib/apt/lists/*
+
+USER robot
+
+RUN /bin/bash -ci "cd $HOME/ros/catkin_ws; catkin_make"
+
+#Uncomment this to force rebuild from here
+RUN touch /tmp/lastbuild
+
+# TODO  gazebo_contacts
+#RUN cd $HOME/ros/catkin_ws/src && \
+#    ln -s $HOME/src/pg_lab/sim_utils/gazebo_contacts . && \
+#RUN /bin/bash -ci "cd $HOME/ros/catkin_ws; catkin_make"
+
+USER root
+
+RUN ln -s /usr/bin/python3 /usr/bin/python
+
+USER robot
+
+# Set working dir and container command
+
+WORKDIR /home/robot
+
+CMD /usr/bin/tmux
+
+# Test
+# gazebo --version
+# which gzserver
+# which gzclient
+
+# source /opt/ros/noetic/setup.bash
+# roscore &
+# rosrun gazebo_ros gazebo
+
+# roslaunch gazebo_ros empty_world.launch
+

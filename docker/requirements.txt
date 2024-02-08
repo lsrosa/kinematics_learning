@@ -1,0 +1,11 @@
+numpy==1.24.3
+pandas==2.0.3
+tqdm==4.66.1
+pygame==2.5.0
+matplotlib==3.7.3
+cython==0.29.36
+opencv_python==4.8.1.78
+imageio==2.33.1
+
+gymnasium[box2d]==0.29.1
+
