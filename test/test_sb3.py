@@ -102,7 +102,7 @@ def learn():
     except Exception as e:
         print(e)
         model = PPO("MlpPolicy", vec_env,
-            learning_rate = 0.01,
+            learning_rate = 0.005,
             tensorboard_log=log_dir,
             verbose=1)
         reset_num_timesteps=True
@@ -125,12 +125,11 @@ def learn():
     mean_reward, std_reward = evaluate_policy(model.policy, vec_env, n_eval_episodes=30)
     print(f"mean_reward={mean_reward:.2f} +/- {std_reward}")
 
-    vec_env.close()
-
-
     # save and load
     model.save(model_file)
     print(f"Model saved on file {model_file}")
+
+    vec_env.close()
 
     # test
     env = gym.make("Reacher-v4", render_mode="human") 
