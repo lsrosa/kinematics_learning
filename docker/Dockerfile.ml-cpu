@@ -60,7 +60,11 @@ RUN pip3 install torchdata==0.7.1
 #RUN pip3 install jupyter notebook jupyter_http_over_ws
 
 #RUN jupyter serverextension enable --py jupyter_http_over_ws
-  
+
+ADD patch /opt/patch
+
+RUN cp /opt/patch/mujoco_rendering.py /home/robot/.local/lib/python3.8/site-packages/gymnasium/envs/mujoco/mujoco_rendering.py
+
 WORKDIR /home/robot
 
 
