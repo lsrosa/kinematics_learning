@@ -5,10 +5,12 @@ import torch
 
 from typing import TYPE_CHECKING, SupportsFloat, Any, TypeVar
 
-from gymnasium.envs.mujoco import ReacherEnv
 from gymnasium.core import ActType, ObsType, WrapperObsType
+from gymnasium.spaces import Box
 from gymnasium.wrappers import FrameStack
 from gymnasium import RewardWrapper
+
+from rgym.envs.reacher_v4 import ReacherEnv
 
 '''
 Reacher 
@@ -188,121 +190,183 @@ class ReacherModSR(RewardWrapper):
         v1 = self.unwrapped.data.qvel.flat[:2]
         vn1 = np.linalg.norm(v1)
 
-        evn1 = 2/(1 + math.exp(vn1/10))-1      # [0,40]  -> [0,-1]     
-        ed1 = 2/(1 + math.exp(d1/0.1))-1       # [0,0.4] -> [0,-1]
+        evn1 = np.clip(1-vn1/100, 0, 1)         # [0,100]  -> [1,0]     
+        ed1 = np.clip(1-d1/0.4, 0, 1)           # [0,0.4] -> [1,0]
 
         g = 1.0 if (d1<0.05 and vn1<1.0) else 0.0
 
-        rv = - ed1 * evn1
-        rv2 = ed1 if ed1 < -0.5 else rv
+        rv = ed1 * evn1
+        rv2 = ed1 if ed1 < 0.5 else rv
 
         info['reward_goal'] = g
         info['reward_vel'] = evn1     
         info['reward_dist'] = ed1
         # info['reward_ctrl'] = np.linalg.norm(action)
 
-        return rv2 + g
+        return rv + g  # rv + g
+
+# fixed target
+class ReacherModFT(gym.Wrapper):
+
+    def __init__(self, env, target=None):
+        super().__init__(env)
+        self.target = target
+
+    # set a fixed target
+    def fix_target(self):
+        if self.target == None:
+            self.target = [-0.1, 0.1]
+        self.env.unwrapped.goal = np.array(self.target)
+        qpos = self.env.unwrapped.data.qpos
+        qvel = self.env.unwrapped.data.qvel
+        qpos[-2:] = self.env.unwrapped.goal
+        self.env.unwrapped.set_state(qpos, qvel)
+        return self.env.unwrapped.get_observation()
+
+    def reset(self, **kwargs):
+        obs,info = super().reset(**kwargs)
+        obs = self.fix_target()
+        # print(f"Fixed target pos {self.unwrapped.get_body_com('target')}")
+        return obs,info
+
+    def step(self, action):
+        return self.env.step(action)
+
+
+
+# 1 dof
+class ReacherModA1(gym.Wrapper):
+
+    def __init__(self, env):
+        super().__init__(env)
+        self.action_space = Box(low=-1, high=1, shape=(1,), dtype=np.float32)
+
+    def step(self, action):
+        eaction = np.concatenate( [ action, np.array([0]) ] )
+        return self.env.step(eaction)
 
 
 
 
 from gymnasium.envs.registration import register
 
-
 def reachermod2(**args):
-    env = gym.make("Reacher-v4", **args)
+    env = gym.make("Reacher-v4b", **args)
     env = ReacherMod2(env)
     return env
 
 
 def reachermod4(**args):
-    env = gym.make("Reacher-v4", **args)
+    env = gym.make("Reacher-v4b", **args)
     env = ReacherMod4(env)
     return env
 
 def reachermod4x2(**args):
-    env = gym.make("Reacher-v4", **args)
+    env = gym.make("Reacher-v4b", **args)
     env = ReacherMod4(env)
     env = FrameStack(env,2)
     return env
 
 def reachermod4x2sr(**args):
-    env = gym.make("Reacher-v4", **args)
+    env = gym.make("Reacher-v4b", **args)
     env = ReacherMod4(env)
     env = FrameStack(env,2)
     env = ReacherModSR(env)
     return env
 
 def reachermod6v(**args):
-    env = gym.make("Reacher-v4", **args)
+    env = gym.make("Reacher-v4b", **args)
     env = ReacherMod6v(env)
     return env
 
 def reachermod6vsr(**args):
-    env = gym.make("Reacher-v4", **args)
+    env = gym.make("Reacher-v4b", **args)
     env = ReacherMod6v(env)
     env = ReacherModSR(env)
     return env
 
-
-def reachermod6d(**args):
-    env = gym.make("Reacher-v4", **args)
-    env = ReacherMod6d(env)
+def reachermod6vsrft(**args):
+    env = gym.make("Reacher-v4b", **args)
+    env = ReacherModFT(env)
+    env = ReacherMod6v(env)
+    env = ReacherModSR(env)
     return env
 
+def reachermod6vsrfta1(**args):
+    env = gym.make("Reacher-v4b", **args)
+    env = ReacherModFT(env, target=[-0.1*np.sqrt(2), 0.1*np.sqrt(2)])
+    env = ReacherModA1(env)
+    env = ReacherMod6v(env)
+    env = ReacherModSR(env)
+    return env
+
+def reachermod6d(**args):
+    env = gym.make("Reacher-v4b", **args)
+    env = ReacherMod6d(env)
+    return envb
+
 def reachermod8(**args):
-    env = gym.make("Reacher-v4", **args)
+    env = gym.make("Reacher-v4b", **args)
     env = ReacherMod8(env)
     return env
 
 
 
+
+register(
+     id="Reacher-v4b",
+     entry_point="rgym.envs.reacher_v4:ReacherEnv",
+     max_episode_steps=50,
+)
+
 register(
      id="ReacherMod2",
      entry_point="rgym.envs.reachermod:reachermod2",
-     max_episode_steps=100,
 )
 
 register(
      id="ReacherMod4",
      entry_point="rgym.envs.reachermod:reachermod4",
-     max_episode_steps=100,
 )
 
 register(
      id="ReacherMod4x2",
      entry_point="rgym.envs.reachermod:reachermod4x2",
-     max_episode_steps=100,
 )
 
 register(
      id="ReacherMod4x2SR",
      entry_point="rgym.envs.reachermod:reachermod4x2sr",
-     max_episode_steps=100,
 )
 
 register(
      id="ReacherMod6v",
      entry_point="rgym.envs.reachermod:reachermod6v",
-     max_episode_steps=100,
 )
 
 register(
      id="ReacherMod6vSR",
      entry_point="rgym.envs.reachermod:reachermod6vsr",
-     max_episode_steps=100,
+)
+
+register(
+     id="ReacherMod6vSRFT",
+     entry_point="rgym.envs.reachermod:reachermod6vsrft",
 )
 
 register(
      id="ReacherMod6d",
      entry_point="rgym.envs.reachermod:reachermod6d",
-     max_episode_steps=100,
+)
+
+register(
+     id="ReacherMod6vSRFTA1",
+     entry_point="rgym.envs.reachermod:reachermod6vsrfta1",
 )
 
 register(
      id="ReacherMod8",
      entry_point="rgym.envs.reachermod:reachermod8",
-     max_episode_steps=100,
 )
 
 
