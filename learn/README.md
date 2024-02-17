@@ -5,14 +5,19 @@
 
 To speep-up tests:
 
-Environment with a fixed target position
+Environment with one DOF arm
 
-    python3 learn.py -env ReacherMod6vSRFT -alg SAC -learn_steps 300000 [-seed <n>]
+    python3 learn.py -env ReacherMod6vSRA1 -alg SAC -learn_steps 200000 [-seed <n>]
 
+Environment with fixed target position
 
-Environment with a fixed target position and one DOF arm
+    python3 learn.py -env ReacherMod6vSRFT -alg SAC -learn_steps 250000 [-seed <n>]
+
+Environment with one DOF arm and fixed target position
 
     python3 learn.py -alg SAC -env ReacherMod6vSRFTA1 -learn_steps 150000 [-seed <n>]
+
+
 
 # Save and load models
 
@@ -21,6 +26,8 @@ The script automatically save and reload the models and the log files in the `ru
 To reset, just delete the files
 
     rm -rf runs/<env>_<alg>_<seed>*
+
+
 
 # Play the policy
 

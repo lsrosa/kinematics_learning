@@ -182,6 +182,8 @@ def learn(env_name, alg, learn_steps=1e6, seed=None):
     print(f"Trainable parameters {train_nparams}")
     print("----------------------------")
 
+    print(f"Learning timesteps = {model.num_timesteps}")
+
     try:
         print(f"Training model {model_file} ...")
 

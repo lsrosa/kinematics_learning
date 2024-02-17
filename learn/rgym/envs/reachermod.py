@@ -187,20 +187,25 @@ class ReacherModSR(RewardWrapper):
     def reward(self,observation, reward, info):
         p1 = self.unwrapped.get_body_com("fingertip") - self.unwrapped.get_body_com("target")
         d1 = np.linalg.norm(p1)
-        v1 = self.unwrapped.data.qvel.flat[:2]
-        vn1 = np.linalg.norm(v1)
+        vel1 = self.unwrapped.data.qvel.flat[:2]
+        v1 = np.linalg.norm(vel1)
 
-        evn1 = np.clip(1-vn1/100, 0, 1)         # [0,100]  -> [1,0]     
-        ed1 = np.clip(1-d1/0.4, 0, 1)           # [0,0.4] -> [1,0]
+        dn1 = np.clip(1-d1/0.4, 0, 1)           # [0,0.4] -> [1,0]
+        vn1 = np.clip(1-v1/12, 0, 1)           # [0,120]  -> [1,0]
 
-        g = 1.0 if (d1<0.05 and vn1<1.0) else 0.0
+        vn1d = np.clip(math.pow(vn1,2*dn1), 0, 1)              
 
-        rv = ed1 * evn1
-        rv2 = ed1 if ed1 < 0.5 else rv
+
+
+        g = 1.0 if (d1<0.05 and v1<1.0) else 0.0
+
+        rv = dn1 * vn1d
+
+        rv2 = dn1 if dn1 < 0.5 else rv
 
         info['reward_goal'] = g
-        info['reward_vel'] = evn1     
-        info['reward_dist'] = ed1
+        info['reward_vel'] = vn1d     
+        info['reward_dist'] = dn1
         # info['reward_ctrl'] = np.linalg.norm(action)
 
         return rv + g  # rv + g
@@ -208,13 +213,18 @@ class ReacherModSR(RewardWrapper):
 # fixed target
 class ReacherModFT(gym.Wrapper):
 
-    def __init__(self, env, target=None):
+    def __init__(self, env, target=None, mode=None):
         super().__init__(env)
         self.target = target
+        self.mode = mode
 
     # set a fixed target
     def fix_target(self):
-        if self.target == None:
+        if self.mode == 'A1':
+            a = self.np_random.uniform(low=0, high=2*math.pi)
+            self.target = [ 0.2*math.cos(a), 0.2*math.sin(a) ]
+            # print(self.target)
+        elif self.target == None:
             self.target = [-0.1, 0.1]
         self.env.unwrapped.goal = np.array(self.target)
         qpos = self.env.unwrapped.data.qpos
@@ -292,6 +302,14 @@ def reachermod6vsrft(**args):
     env = ReacherModSR(env)
     return env
 
+def reachermod6vsra1(**args):
+    env = gym.make("Reacher-v4b", **args)
+    env = ReacherModFT(env, mode='A1')
+    env = ReacherModA1(env)
+    env = ReacherMod6v(env)
+    env = ReacherModSR(env)
+    return env
+
 def reachermod6vsrfta1(**args):
     env = gym.make("Reacher-v4b", **args)
     env = ReacherModFT(env, target=[-0.1*np.sqrt(2), 0.1*np.sqrt(2)])
@@ -355,14 +373,20 @@ register(
 )
 
 register(
-     id="ReacherMod6d",
-     entry_point="rgym.envs.reachermod:reachermod6d",
+     id="ReacherMod6vSRA1",
+     entry_point="rgym.envs.reachermod:reachermod6vsra1",
 )
 
 register(
      id="ReacherMod6vSRFTA1",
      entry_point="rgym.envs.reachermod:reachermod6vsrfta1",
 )
+
+register(
+     id="ReacherMod6d",
+     entry_point="rgym.envs.reachermod:reachermod6d",
+)
+
 
 register(
      id="ReacherMod8",

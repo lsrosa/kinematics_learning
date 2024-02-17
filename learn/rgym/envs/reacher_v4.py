@@ -147,6 +147,17 @@ class ReacherEnv(MujocoEnv, utils.EzPickle):
         reward_ctrl = -np.square(a).sum()
         reward = reward_dist + reward_ctrl
 
+        # velocity limit
+        vel = self.unwrapped.data.qvel.flat[:2]
+        if vel[0]>10 and a[0]>0:
+            a[0] = 0
+        elif vel[0]<-10 and a[0]<0:
+            a[0] = 0
+        if vel[1]>10 and a[1]>0:
+            a[1] = 0
+        elif vel[1]<-10 and a[1]<0:
+            a[1] = 0
+
         self.do_simulation(a, self.frame_skip)
         if self.render_mode == "human":
             self.render()
