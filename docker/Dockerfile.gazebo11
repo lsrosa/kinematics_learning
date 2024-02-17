@@ -89,7 +89,7 @@ USER robot
 RUN /bin/bash -ci "cd $HOME/ros/catkin_ws; catkin_make"
 
 #Uncomment this to force rebuild from here
-RUN touch /tmp/lastbuild
+#RUN touch /tmp/lastbuild
 
 # TODO  gazebo_contacts
 #RUN cd $HOME/ros/catkin_ws/src && \
@@ -108,14 +108,5 @@ WORKDIR /home/robot
 
 CMD /usr/bin/tmux
 
-# Test
-# gazebo --version
-# which gzserver
-# which gzclient
 
-# source /opt/ros/noetic/setup.bash
-# roscore &
-# rosrun gazebo_ros gazebo
-
-# roslaunch gazebo_ros empty_world.launch
 

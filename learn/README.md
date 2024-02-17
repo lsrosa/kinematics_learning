@@ -26,3 +26,13 @@ To reset, just delete the files
 
     python3 learn.py -env ReacherMod6vSR -alg SAC [-seed <n>] --play
 
+Press 'h' to remove debug text from the simulator window
+
+
+
+If you get error when running mujoco simulator, apply this patch
+in the docker container
+
+    cp ~/src/iros2024/docker/patch/mujoco_rendering.py ~/.local/lib/python3.8/site-packages/gymnasium/envs/mujoco/
+
+
