@@ -101,6 +101,10 @@ class AbsReacher(gym.Env):
         reward = - dist - v2 - w2
         return reward, info
 
+    def fk(self):
+        self.xpos = [ self.R1*math.cos(self.j[0])+self.R2*math.cos(self.j[0]+self.j[1]), 
+                      self.R1*math.sin(self.j[0])+self.R2*math.sin(self.j[0]+self.j[1]) ]  # robot ee pos
+
     def reset(self,*,
             seed: Optional[int] = None,
             options: Optional[dict] = None,
@@ -110,10 +114,9 @@ class AbsReacher(gym.Env):
         self.j[1] = self.np_random.uniform(-math.pi,math.pi) # robot joint angle
         self.t[0] = self.np_random.uniform(-math.pi,math.pi) # target angle
         self.t[1] = self.np_random.uniform(-math.pi,math.pi) # target angle
-        self.xpos = [ self.R1*math.cos(self.j[0])+self.R2*math.cos(self.j[1]), 
-                      self.R1*math.sin(self.j[0])+self.R2*math.sin(self.j[1]) ]  # robot ee pos 
-        self.tpos = [ self.R1*math.cos(self.t[0])+self.R2*math.sin(self.t[1]), 
-                      self.R1*math.sin(self.t[0])+self.R2*math.sin(self.t[1]) ]  # target pos
+        self.fk()
+        self.tpos = [ self.R1*math.cos(self.t[0])+self.R2*math.sin(self.t[0]+self.t[1]), 
+                      self.R1*math.sin(self.t[0])+self.R2*math.sin(self.t[0]+self.t[1]) ]  # target pos
         self.v = np.zeros((2,))    # ang velocity
         self.w = np.zeros((2,))    # ang acceleration
         self.n_steps = 0
@@ -136,8 +139,7 @@ class AbsReacher(gym.Env):
         self.v[1] = self.v[1] + self.w[1] * self.dt
         self.j[0] = norm_pi(self.j[0] + self.v[0] * self.dt)
         self.j[1] = norm_pi(self.j[1] + self.v[1] * self.dt)
-        self.xpos = [ self.R1*math.cos(self.j[0])+self.R2*math.cos(self.j[1]), 
-                      self.R1*math.sin(self.j[0])+self.R2*math.sin(self.j[1]) ]  # robot ee pos 
+        self.fk()  # robot ee pos 
 
         self.n_steps += 1
 
@@ -176,17 +178,17 @@ def absreacher6v(**args):
 register(
      id="AbsReacher4",
      entry_point="rgym.envs.absreacher:absreacher4",
-     max_episode_steps=100,
+     max_episode_steps=50,
 )
 
 register(
      id="AbsReacher4x2",
      entry_point="rgym.envs.absreacher:absreacher4x2",
-     max_episode_steps=100,
+     max_episode_steps=50,
 )
 
 register(
      id="AbsReacher6v",
      entry_point="rgym.envs.absreacher:absreacher6v",
-     max_episode_steps=100,
+     max_episode_steps=50,
 )

@@ -191,11 +191,9 @@ class ReacherModSR(RewardWrapper):
         v1 = np.linalg.norm(vel1)
 
         dn1 = np.clip(1-d1/0.4, 0, 1)           # [0,0.4] -> [1,0]
-        vn1 = np.clip(1-v1/12, 0, 1)           # [0,120]  -> [1,0]
+        vn1 = np.clip(1-v1/12, 0, 1)            # [0,12]  -> [1,0]
 
         vn1d = np.clip(math.pow(vn1,2*dn1), 0, 1)              
-
-
 
         g = 1.0 if (d1<0.05 and v1<1.0) else 0.0
 
@@ -208,7 +206,7 @@ class ReacherModSR(RewardWrapper):
         info['reward_dist'] = dn1
         # info['reward_ctrl'] = np.linalg.norm(action)
 
-        return rv + g  # rv + g
+        return rv + g
 
 # fixed target
 class ReacherModFT(gym.Wrapper):
