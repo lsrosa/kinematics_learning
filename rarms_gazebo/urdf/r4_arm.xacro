@@ -1,0 +1,559 @@
+<?xml version="1.0"?>
+
+<!-- Make the namespace of the robot-->
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="r4_arm">
+    <!--Define constants-->
+    
+    <xacro:property name="M_PI" value="3.14159"/>
+    
+    <!-- Constants for the robotic arm (masses in kg, lengths in m) -->
+
+    <xacro:property name="max_effort" value="100" />
+    <xacro:property name="max_velocity" value="0.5" />
+
+    <xacro:property name="damping_1" value="0.003" />
+    <xacro:property name="damping_2" value="0.10" />
+    <xacro:property name="damping_3" value="0.003" />
+    <xacro:property name="damping_4" value="0.05" />
+
+    <!-- base_link -->
+    <xacro:property name="length_0" value="0.005" /> 
+    <xacro:property name="radius_0" value="0.015" /> 
+    <xacro:property name="mass_0" value="0.200" />
+
+    <!-- joint_1 -->
+
+    <!-- link_1 -->
+    <xacro:property name="length_1" value="0.020" />
+    <xacro:property name="radius_1" value="0.005" />
+    <xacro:property name="mass_1" value="0.100" />
+
+    <!-- joint_j2 -->
+
+    <!-- link_j2 -->
+    <xacro:property name="length_j2" value="0.020" /> 
+    <xacro:property name="radius_j2" value="0.0075" />
+    <xacro:property name="mass_j2" value="0.020" />
+
+    <!-- joint_2 -->
+
+    <!-- link_2 -->
+    <xacro:property name="length_2" value="0.080" />
+    <xacro:property name="radius_2" value="0.005" />
+    <xacro:property name="mass_2" value="0.200" />
+
+    <!-- joint_j3 -->
+
+    <!-- link_j3 -->
+    <xacro:property name="length_j3" value="0.005" />
+    <xacro:property name="radius_j3" value="0.015" />
+    <xacro:property name="mass_j3" value="0.020" />
+
+    <!-- joint_3 -->
+
+    <!-- link_3 -->
+    <xacro:property name="length_4" value="0.010" />
+    <xacro:property name="radius_4" value="0.005" />
+    <xacro:property name="mass_3" value="0.100" />
+
+    <!-- joint_j4 -->
+
+    <!-- link_j4 -->
+    <xacro:property name="radius_j4" value="0.0075" />    
+    <xacro:property name="length_j4" value="0.020" />
+    <xacro:property name="mass_j4" value="0.020" />
+
+    <!-- joint_4 -->
+
+    <!-- link_4 -->
+    <xacro:property name="length_5" value="0.050" />
+    <xacro:property name="radius_5" value="0.005" />
+    <xacro:property name="mass_4" value="0.150" />
+
+    <!-- EE -->
+    <xacro:property name="base_EE_1" value="0.01" /> 
+    <xacro:property name="length_EE_1" value="0.04" />
+    <xacro:property name="length_EE_2" value="0.02" />
+    <xacro:property name="mass_EE1" value="0.030" />
+    <xacro:property name="mass_EE21" value="0.010" />
+    <xacro:property name="mass_EE22" value="0.010" />
+
+    
+    
+
+    <!--Define Rviz colors-->
+    <material name="Black">
+        <color rgba="0.0 0.0 0.0 1.0"/>
+    </material>
+    <material name="Red">
+        <color rgba="0.8 0.0 0.0 1.0"/>
+    </material>
+    <material name="Blue">
+        <color rgba="0.0 0.0 1.0 1.0"/>
+    </material>
+    <material name="LightBlue">
+        <color rgba="0.589 0.793 1.0 1.0"/>
+    </material>
+    <material name="Grey">
+        <color rgba="0.5 0.5 0.5 1.0"/>
+    </material>
+    <material name="White">
+        <color rgba="1.0 1.0 1.0 1.0"/>
+    </material>
+
+    <!-- macros for inertia -->
+
+    <!-- ref: https://en.wikipedia.org/wiki/List_of_moments_of_inertia#List_of_3D_inertia_tensors -->
+
+    <xacro:macro name="cylinder_inertial_block" params="mass length radius">
+      <inertial>
+        <origin xyz="0 0 ${length/2}" rpy="0 0 0"/>
+        <mass value="${mass}"/>
+        <inertia
+            ixx="${mass / 12.0 * (3*radius*radius+length*length)}" ixy="0.0" ixz="0.0"
+            iyy="${mass / 12.0 * (3*radius*radius+length*length)}" iyz="0.0"
+            izz="${mass / 2.0 * (radius*radius)}" />
+      </inertial>
+    </xacro:macro>
+    
+    <xacro:macro name="box_inertial_block" params="mass x y z">
+      <inertial>
+        <origin xyz="0 0 ${z/2}" rpy="0 0 0"/>
+        <mass value="${mass}"/>
+        <inertia
+            ixx="${mass / 12.0 * (y*y+z*z)}" ixy="0.0" ixz="0.0"
+            iyy="${mass / 12.0 * (x*x+z*z)}" iyz="0.0"
+            izz="${mass / 12.0 * (x*x+y*y)}" />
+      </inertial>
+    </xacro:macro>
+
+    <!-- macros for transmission -->
+    <xacro:macro name="transmission_block" params="joint_name">
+	  <transmission name="tran1">
+	    <type>transmission_interface/SimpleTransmission</type>
+	    <joint name="${joint_name}">
+          <!-- Position/Velocity/Effort|JointInterface -->
+	      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+	    </joint>
+	    <actuator name="motor_${joint_name}">
+	      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+	      <mechanicalReduction>1</mechanicalReduction>
+	    </actuator>
+	  </transmission>
+    </xacro:macro>
+
+    <!--Define Gazebo colors-->
+    <xacro:macro name="gazebo_grey_link_color_block" params="link_name">
+    <gazebo reference="${link_name}">
+    <visual>
+      <material>
+        <ambient>0.5 0.5 0.5 1.0</ambient>
+        <diffuse>0.56666695 0.56666695 0.56666695 1.0</diffuse>
+        <specular>0.6000003 0.6000003 0.6000003 1.0</specular>
+      </material>
+    </visual>
+    </gazebo>
+    </xacro:macro>
+
+    <xacro:macro name="gazebo_blue_link_color_block" params="link_name">
+    <gazebo reference="${link_name}">
+    <visual>
+      <material>
+	<ambient>0.589 0.793 1.0 1.0</ambient>
+	<diffuse>0.56666695 0.56666695 0.56666695 1.0</diffuse>
+	<specular>0.6000003 0.6000003 0.6000003 1.0</specular>
+      </material>
+    </visual>
+    </gazebo>
+    </xacro:macro>
+  
+    <!--=============================================================================-->
+    
+    <link name="world"/>
+
+    <joint name="world_joint" type="fixed">
+        <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/> 
+        <parent link="world"/>
+        <child link="base_link"/>
+    </joint>
+    
+    <link name="base_link">
+        <xacro:cylinder_inertial_block mass="${mass_0}" length="${length_0}" radius="${radius_0}"/>
+        <visual>
+            <origin xyz="0.0 0.0 ${length_0/2.0}" rpy="0.0 0.0 0.0"/>
+            <geometry>
+                <cylinder radius="${radius_0}" length="${length_0}"/>
+            </geometry>
+            <material name="LightBlue"/>
+        </visual>
+
+        <collision>
+            <origin xyz="0.0 0.0 ${length_0/2.0}" rpy="0.0 0.0 0.0"/>
+            <geometry>
+                <cylinder radius="${radius_0}" length="${length_0}"/>
+            </geometry>>
+        </collision>
+    </link>
+
+    <xacro:gazebo_blue_link_color_block link_name="base_link"/>
+
+    <joint name="joint_1" type="revolute">
+        <origin xyz="0.0 0.0 ${length_0}" rpy="0.0 0.0 0.0"/>
+        <parent link="base_link"/>
+        <child link="link_1"/>
+        <axis xyz="0.0 0.0 1"/>
+        <dynamics damping="${damping_1}"/>
+        <limit lower="-1.571" upper="1.571" effort="${max_effort}" velocity="${max_velocity}"/>
+    </joint>
+    
+    
+    <!--=============================================================================-->
+    <!--link_1-->
+    <link name="link_1">
+        <xacro:cylinder_inertial_block mass="${mass_1}" length="${length_1}" radius="${radius_1}"/>
+        <visual>
+            <origin xyz="0.0 0.0 ${length_1/2.0}" rpy="0.0 0.0 0.0"/>
+            <geometry>
+                <cylinder radius="${radius_1}" length="${length_1}"/>
+            </geometry>
+            <material name="Grey"/>
+        </visual>
+
+        <collision>
+            <origin xyz="0.0 0.0 ${length_1/2.0}" rpy="0.0 0.0 0.0"/>
+            <geometry>
+                <cylinder radius="${radius_1}" length="${length_1}"/>
+            </geometry>>
+        </collision>
+    </link>
+    
+    <xacro:gazebo_grey_link_color_block link_name="link_1"/>
+    
+    <link name="link_j2">
+        <xacro:cylinder_inertial_block mass="${mass_j2}" length="${length_j2}" radius="${radius_j2}"/>
+        <visual>
+            <origin xyz="0.0 0.0 ${length_j2/2.0}" rpy="0.0 0.0 0.0"/>
+            <geometry>
+                <cylinder radius="${radius_j2}" length="${length_j2}"/>
+            </geometry>
+            <material name="LightBlue"/>
+        </visual>
+
+        <collision>
+            <origin xyz="0.0 0.0 ${length_j2/2.0}" rpy="0.0 0.0 0.0"/>
+            <geometry>
+                <cylinder radius="${radius_j2}" length="${length_j2}"/>
+            </geometry>
+        </collision>
+
+    </link>
+
+
+    <xacro:gazebo_blue_link_color_block link_name="link_j2"/>
+
+
+    <joint name="joint_j2" type="fixed">
+        <origin xyz="${-length_j2/2.0} 0.0 ${length_1+radius_j2}" rpy="0.0 ${M_PI/2.0} 0.0"/>
+        <parent link="link_1"/>
+        <child link="link_j2"/>
+    </joint>
+
+    <gazebo reference="joint_j2">
+        <disableFixedJointLumping>true</disableFixedJointLumping> 
+        <preserveFixedJoint>true</preserveFixedJoint>
+    </gazebo>
+
+    <joint name="joint_2" type="revolute">
+        <origin xyz="0.0 0.0 ${length_1+radius_j2}" rpy="0.0 0.0 0.0"/>
+        <parent link="link_1"/>
+        <child link="link_2"/>
+        <axis xyz="1.0 0.0 0.0"/>
+        <dynamics damping="${damping_2}"/> <!-- friction="1.0" ??? -->
+        <limit lower="-1.571" upper="1.571" effort="${max_effort}" velocity="${max_velocity}"/>
+    </joint>
+
+   <!--=============================================================================-->
+    <!--link_2-->
+    <link name="link_2">
+        <xacro:cylinder_inertial_block mass="${mass_2}" length="${length_2}" radius="${radius_2}"/>
+        <visual>
+            <origin xyz="0.0 0.0 ${length_2/2.0}" rpy="0.0 0.0 0.0"/>
+            <geometry>
+                <cylinder radius="${radius_2}" length="${length_2}"/>
+            </geometry>
+            <material name="Grey"/>
+        </visual>
+
+        <collision>
+            <origin xyz="0.0 0.0 ${length_2/2.0}" rpy="0.0 0.0 0.0"/>
+            <geometry>
+                <cylinder radius="${radius_2}" length="${length_2}"/>
+            </geometry>>
+        </collision>
+    </link>
+
+    <xacro:gazebo_grey_link_color_block link_name="link_2"/>
+
+    <link name="link_j3">
+        <xacro:cylinder_inertial_block mass="${mass_j3}" length="${length_j3}" radius="${radius_j3}"/>
+        <visual>
+            <origin xyz="0.0 0.0 ${length_j3/2.0}" rpy="0.0 0.0 0.0"/>
+            <geometry>
+                <cylinder radius="${radius_j3}" length="${length_j3}"/>
+            </geometry>
+            <material name="LightBlue"/>
+        </visual>
+
+        <collision>
+            <origin xyz="0.0 0.0 ${length_j3/2.0}" rpy="0.0 0.0 0.0"/>
+            <geometry>
+                <cylinder radius="${radius_j3}" length="${length_j3}"/>
+            </geometry>
+        </collision>
+    </link>
+
+    <xacro:gazebo_blue_link_color_block link_name="link_j3"/>
+
+    <joint name="joint_j3" type="fixed">
+        <origin xyz="0.0 0.0 ${length_2}" rpy="0.0 0.0 0.0"/>
+        <parent link="link_2"/>
+        <child link="link_j3"/>
+    </joint>
+    
+   <gazebo reference="joint_j3">
+        <disableFixedJointLumping>true</disableFixedJointLumping> 
+        <preserveFixedJoint>true</preserveFixedJoint>
+    </gazebo>
+    
+    <joint name="joint_3" type="revolute">
+        <origin xyz="0.0 0.0 ${length_2+length_j3}" rpy="0.0 0.0 0.0"/>
+        <parent link="link_2"/>
+        <child link="link_3"/>
+        <axis xyz="0.0 0.0 1.0"/>
+        <dynamics damping="${damping_3}"/>
+        <limit lower="-1.571" upper="1.571" effort="${max_effort}" velocity="${max_velocity}"/>
+    </joint> 
+
+    <!--=============================================================================-->
+    <!--link_3-->
+    <link name="link_3">
+        <xacro:cylinder_inertial_block mass="${mass_3}" length="${length_4}" radius="${radius_4}"/>
+        <visual>
+            <origin xyz="0.0 0.0 ${length_4/2.0}" rpy="0.0 0.0 0.0"/>
+            <geometry>
+                <cylinder radius="${radius_4}" length="${length_4}"/>
+            </geometry>
+            <material name="Grey"/>
+        </visual>
+
+        <collision>
+            <origin xyz="0.0 0.0 ${length_4/2.0}" rpy="0.0 0.0 0.0"/>
+            <geometry>
+                <cylinder radius="${radius_4}" length="${length_4}"/>
+            </geometry>>
+        </collision>
+    </link>
+    
+    <xacro:gazebo_grey_link_color_block link_name="link_3"/>
+    
+    <link name="link_j4">
+        <xacro:cylinder_inertial_block mass="${mass_j4}" length="${length_j4}" radius="${radius_j4}"/>
+        <visual>
+            <origin xyz="0.0 0.0 ${length_j4/2.0}" rpy="0.0 0.0 0.0"/>
+            <geometry>
+                <cylinder radius="${radius_j4}" length="${length_j4}"/>
+            </geometry>
+            <material name="LightBlue"/>
+        </visual>
+
+        <collision>
+            <origin xyz="0.0 0.0 ${length_j4/2.0}" rpy="0.0 0.0 0.0"/>
+            <geometry>
+                <cylinder radius="${radius_j4}" length="${length_j4}"/>
+            </geometry>
+        </collision>
+
+    </link>
+
+    <xacro:gazebo_blue_link_color_block link_name="link_j4"/>
+
+
+
+    <joint name="joint_j4" type="fixed">
+        <origin xyz="${-length_j4/2} 0.0 ${length_4+radius_j4}" rpy="0.0 ${M_PI/2.0} 0.0"/>
+        <parent link="link_3"/>
+        <child link="link_j4"/>
+    </joint>
+
+    <gazebo reference="joint_j4">
+        <disableFixedJointLumping>true</disableFixedJointLumping> 
+        <preserveFixedJoint>true</preserveFixedJoint>
+    </gazebo> 
+
+    <joint name="joint_4" type="revolute">
+        <origin xyz="0.0 0.0 ${length_4+radius_j4}" rpy="0.0 0.0 0.0"/> 
+        <parent link="link_3"/>
+        <child link="link_4"/>
+        <axis xyz="1.0 0.0 0.0"/>
+        <dynamics damping="${damping_4}"/>
+        <limit lower="-1.571" upper="1.571" effort="${max_effort}" velocity="${max_velocity}"/>
+    </joint>
+
+    <!--=============================================================================-->
+    <!--link_4-->
+    <link name="link_4">
+        <xacro:cylinder_inertial_block mass="${mass_4}" length="${length_5}" radius="${radius_5}"/>
+        <visual>
+            <origin xyz="0.0 0.0 ${length_5/2.0}" rpy="0.0 0.0 0.0"/>
+            <geometry>
+                <cylinder radius="${radius_5}" length="${length_5}"/>
+            </geometry>
+            <material name="Grey"/>
+        </visual>
+
+        <collision>
+            <origin xyz="0.0 0.0 ${length_5/2.0}" rpy="0.0 0.0 0.0"/>
+            <geometry>
+                <cylinder radius="${radius_5}" length="${length_5}"/>
+            </geometry>
+        </collision>
+    </link>
+
+    <xacro:gazebo_grey_link_color_block link_name="link_4"/>
+    
+    <joint name="EE_joint_1" type="fixed">
+        <origin xyz="${-length_EE_1/2.0} 0.0 ${length_5+base_EE_1/2.0}" rpy="0.0 ${M_PI/2.0} 0.0"/>
+        <parent link="link_4"/>
+        <child link="EE_part_1"/>
+    </joint>
+    
+    <gazebo reference="EE_joint_1">
+        <disableFixedJointLumping>true</disableFixedJointLumping> 
+        <preserveFixedJoint>true</preserveFixedJoint>
+    </gazebo>
+
+    <!--=============================================================================-->
+    <!--EE_part_1-->
+    <link name="EE_part_1">
+        <xacro:box_inertial_block mass="${mass_EE1}" x="${base_EE_1}" y="${base_EE_1}" z="${length_EE_1}"/>
+        <visual>
+            <origin xyz="0.0 0.0 ${length_EE_1/2.0}" rpy="0.0 0.0 0.0"/>
+            <geometry>
+                <box size="${base_EE_1} ${base_EE_1} ${length_EE_1}"/>
+            </geometry>
+            <material name="Grey"/>
+        </visual>
+
+        <collision>
+            <origin xyz="0.0 0.0 ${length_EE_1/2.0}" rpy="0.0 0.0 0.0"/>
+            <geometry>
+                <box size="${base_EE_1} ${base_EE_1} ${length_EE_1}"/>
+            </geometry>
+        </collision>
+    </link>
+
+    <xacro:gazebo_grey_link_color_block link_name="EE_part_1"/>
+    
+    <joint name="EE_joint_21" type="fixed">
+        <origin xyz="${-base_EE_1/2} 0.0 ${length_EE_1/4}" rpy="0.0 ${-M_PI/2.0} 0.0"/>
+        <parent link="EE_part_1"/>
+        <child link="EE_part_21"/>
+    </joint>
+    
+    <gazebo reference="EE_joint_21">
+        <disableFixedJointLumping>true</disableFixedJointLumping> 
+        <preserveFixedJoint>true</preserveFixedJoint>
+    </gazebo>
+    
+    <joint name="EE_joint_22" type="fixed">
+        <origin xyz="${-base_EE_1/2} 0.0 ${3*length_EE_1/4}" rpy="0.0 ${-M_PI/2.0} 0.0"/>
+        <parent link="EE_part_1"/>
+        <child link="EE_part_22"/>
+    </joint>    
+    
+    <gazebo reference="EE_joint_22">
+        <disableFixedJointLumping>true</disableFixedJointLumping> 
+        <preserveFixedJoint>true</preserveFixedJoint>
+    </gazebo>
+    <!--=============================================================================-->
+    <!--EE_part_2-->
+    <link name="EE_part_21">
+        <xacro:box_inertial_block mass="${mass_EE21}" x="${base_EE_1/2}" y="${base_EE_1}" z="${length_EE_2}"/>
+        <visual>
+            <origin xyz="0.0 0.0 ${length_EE_2/2.0}" rpy="0.0 0.0 0.0"/>
+            <geometry>
+                <box size="${base_EE_1/2} ${base_EE_1} ${length_EE_2}"/>
+            </geometry>
+            <material name="Grey"/>
+        </visual>
+
+        <collision>
+            <origin xyz="0.0 0.0 ${length_EE_2/2.0}" rpy="0.0 0.0 0.0"/>
+            <geometry>
+                <box size="${base_EE_1/2} ${base_EE_1} ${length_EE_2}"/>
+            </geometry>
+        </collision>
+    </link>
+    
+    <xacro:gazebo_grey_link_color_block link_name="EE_part_21"/>
+    
+    <link name="EE_part_22">
+        <xacro:box_inertial_block mass="${mass_EE22}" x="${base_EE_1/2}" y="${base_EE_1}" z="${length_EE_2}"/>
+        <visual>
+            <origin xyz="0.0 0.0 ${length_EE_2/2.0}" rpy="0.0 0.0 0.0"/>
+            <geometry>
+                <box size="${base_EE_1/2} ${base_EE_1} ${length_EE_2}"/>
+            </geometry>
+            <material name="Grey"/>
+        </visual>
+
+        <collision>
+            <origin xyz="0.0 0.0 ${length_EE_2/2.0}" rpy="0.0 0.0 0.0"/>
+            <geometry>
+                <box size="${base_EE_1/2} ${base_EE_1} ${length_EE_2}"/>
+            </geometry>
+        </collision>
+    </link>
+    
+    <xacro:gazebo_grey_link_color_block link_name="EE_part_22"/>
+
+<!--=============================================================================-->    
+    <!-- EE tip link -->
+
+    <joint name="EE_joint_tip" type="fixed">
+        <origin xyz="${-base_EE_1/2-length_EE_2} 0.0 ${length_EE_1/2}" rpy="0.0 ${-M_PI/2.0} 0.0"/>
+        <parent link="EE_part_1"/>
+        <child link="EE_tip"/>
+    </joint>
+
+    <link name="EE_tip">
+        <xacro:box_inertial_block mass="0.01" x="0.01" y="0.01" z="0.01"/>
+    </link>
+
+    <!-- gazebo reference="EE_tip" / -->
+    <!-- xacro:gazebo_grey_link_color_block link_name="EE_tip"/ -->
+
+    <gazebo reference="EE_joint_tip">
+        <disableFixedJointLumping>true</disableFixedJointLumping> 
+        <preserveFixedJoint>true</preserveFixedJoint>
+    </gazebo>
+
+
+    <!-- Transmissions for ros control -->
+    <xacro:transmission_block joint_name="joint_1"/>
+    <xacro:transmission_block joint_name="joint_2"/>
+    <xacro:transmission_block joint_name="joint_3"/>
+    <xacro:transmission_block joint_name="joint_4"/>
+    <!--<xacro:transmission_block joint_name="new_joint"/>
+    <xacro:transmission_block joint_name="gripper_joint_1"/>
+    <xacro:transmission_block joint_name="gripper_joint_2"/>-->
+    
+
+    <!-- ros_control plugin -->
+    <gazebo>
+        <plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
+        <robotNamespace>/r4_arm</robotNamespace>
+        </plugin>
+    </gazebo>
+
+</robot>
