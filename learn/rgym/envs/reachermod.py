@@ -12,6 +12,9 @@ from gymnasium import RewardWrapper
 
 from rgym.envs.reacher_v4 import ReacherEnv
 
+from networks import *
+
+
 '''
 Reacher 
 - https://gymnasium.farama.org/environments/mujoco/reacher/
@@ -175,6 +178,10 @@ class ReacherModSR(RewardWrapper):
 
     def __init__(self, env):
         super().__init__(env)
+        self.fknet = None
+
+    def set_fknet(self, fknet):
+        self.fknet = fknet
 
     def reset(self, **kwargs):
         obs,info = super().reset(**kwargs)
@@ -184,8 +191,14 @@ class ReacherModSR(RewardWrapper):
         observation, reward, terminated, truncated, info = self.env.step(action)
         return observation, self.reward(observation,reward,info), terminated, truncated, info
 
-    def reward(self,observation, reward, info):
-        p1 = self.unwrapped.get_body_com("fingertip") - self.unwrapped.get_body_com("target")
+    def reward(self, observation, reward, info):
+        if self.fknet != None:
+            x = observation[0:2]
+            t = observation[2:4]
+            p1 = self.fknet.predict(x).detach().numpy() - t
+        else:
+            p1 = self.unwrapped.get_body_com("fingertip") - self.unwrapped.get_body_com("target")
+        
         d1 = np.linalg.norm(p1)
         vel1 = self.unwrapped.data.qvel.flat[:2]
         v1 = np.linalg.norm(vel1)

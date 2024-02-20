@@ -17,6 +17,7 @@ import gymnasium as gym
 
 import rgym
 
+from networks import *
 
 
 # check device
@@ -28,13 +29,15 @@ else:
 # log/runs directory
 log_dir = 'runs'
 
-def get_names(alg, env, seed):
+def get_names(alg, env, seed, fknet=None):
     global log_dir
     if type(env)==DummyVecEnv:
         env_name = env.envs[0].spec.id
     else:
         env_name = env.spec.id
-    log_name = env_name + "_" + alg    
+    log_name = env_name + "_" + alg
+    if fknet != None:
+        log_name += "_FK"
     if seed != None:
         log_name += f"_{seed}"
     model_file = log_dir + "/" + log_name + ".pth"
@@ -42,9 +45,9 @@ def get_names(alg, env, seed):
     return log_dir, log_name, model_file, lock_file
 
 
-def create_model(alg, env, seed=None):
+def create_model(alg, env, seed=None, fknet=None):
 
-    log_dir, _, model_file, _ = get_names(alg,env,seed)
+    log_dir, _, model_file, _ = get_names(alg,env,seed,fknet)
 
     print(f"Creating model {model_file} ...")
 
@@ -68,9 +71,9 @@ def create_model(alg, env, seed=None):
     return model
 
 
-def load_model(alg, env, seed=None):
+def load_model(alg, env, seed=None, fknet=None):
 
-    _, _, model_file, _ = get_names(alg,env,seed)
+    _, _, model_file, _ = get_names(alg,env,seed,fknet)
 
     print(f"Loading model {model_file} ...")
 
@@ -93,11 +96,11 @@ def load_model(alg, env, seed=None):
 
 
 
-def play(env_name, alg, seed, n=5):
+def play(env_name, alg, seed, n=5, fknet=None):
 
     env = gym.make(env_name, render_mode="human") 
 
-    model = load_model(alg, env, seed)
+    model = load_model(alg, env, seed, fknet)
 
     for i in range(n):
         obs,info = env.reset()
@@ -123,10 +126,10 @@ def play(env_name, alg, seed, n=5):
     env.close()
 
 
-def eval_policy(env_name, alg, seed, n=100):
+def eval_policy(env_name, alg, seed, n=100, fknet=None):
 
     env = gym.make(env_name)
-    model = load_model(alg, env, seed)
+    model = load_model(alg, env, seed, fknet)
 
     env = Monitor(env)
 
@@ -142,20 +145,28 @@ def eval_policy(env_name, alg, seed, n=100):
 
 
 
-def make_env(env_name):
+def make_env(env_name,fknet):
     env = gym.make(env_name)
+    if fknet!=None:
+        env.set_fknet(fknet)
     return env
 
-def learn(env_name, alg, learn_steps=1e6, seed=None):
+def learn(env_name, alg, learn_steps=1e6, seed=None, fknet_file=None):
 
-    vec_env = make_vec_env(functools.partial(make_env,env_name=env_name), n_envs=32) 
+    fknet = None
+    if fknet_file != None:
+        fknet = FKNet(n_in=2, n_out=2)
+        fknet.load(fknet_file)
+        print(f"Loaded FKnet {fknet_file}")
+
+    vec_env = make_vec_env(functools.partial(make_env,env_name=env_name,fknet=fknet), n_envs=32) 
     print("----------------------------")
     print(f"Obs: {vec_env.observation_space}   Act: {vec_env.action_space}")
 
     obs = vec_env.reset()
     print(f"Observation shape: {obs.shape}")
 
-    log_dir, log_name, model_file, lock_file = get_names(alg, vec_env, seed)
+    log_dir, log_name, model_file, lock_file = get_names(alg, vec_env, seed, fknet)
 
     if not os.path.isdir(log_dir):
         os.mkdir(log_dir)
@@ -169,11 +180,11 @@ def learn(env_name, alg, learn_steps=1e6, seed=None):
     lockf.close()
 
     try:
-        model = load_model(alg, vec_env, seed)
+        model = load_model(alg, vec_env, seed, fknet)
         reset_num_timesteps=False
     except Exception as e:
         print(e)
-        model = create_model(alg, vec_env, seed)
+        model = create_model(alg, vec_env, seed, fknet)
         reset_num_timesteps=True
 
     print("----------------------------")
@@ -223,6 +234,8 @@ if __name__ == '__main__':
         help="Learning steps (default: 1,000,000)")
     parser.add_argument("-seed", type=int, default=None,
         help="Random seed (default: None)")
+    parser.add_argument("-fknet", type=str, default=None,
+        help="FKNet model (default: None)")
     parser.add_argument('--play', default = False, action ='store_true', 
         help='Play one episode from saved model')
     parser.add_argument('--eval', default = False, action ='store_true', 
@@ -232,10 +245,10 @@ if __name__ == '__main__':
     print(args)
 
     if args.play:
-        play(args.env, args.alg, args.seed)
+        play(args.env, args.alg, args.seed, n=10, fknet=args.fknet)
     elif args.eval:
-        eval_policy(args.env, args.alg, args.seed)
+        eval_policy(args.env, args.alg, args.seed, n=100, fknet=args.fknet)
     else:
-        learn(args.env, args.alg, args.learn_steps, args.seed)
+        learn(args.env, args.alg, args.learn_steps, args.seed, args.fknet)
 
 
