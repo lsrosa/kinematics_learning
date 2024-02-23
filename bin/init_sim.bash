@@ -20,7 +20,11 @@ tmux send-keys -t $SESSION:2 "roscd rarms_gazebo/src" C-m
 
 
 tmux new-window -t $SESSION:3 -n 'make'
-tmux send-keys -t $SESSION:3 "cd ~/ros/catkin_ws/" C-m
+tmux send-keys -t $SESSION:3 "cd ~/ros/catkin_ws/src" C-m
+tmux send-keys -t $SESSION:3 "ln -s ~/src/iros2024/rarms_gazebo ." C-m
+tmux send-keys -t $SESSION:3 "cd .." C-m
+tmux send-keys -t $SESSION:3 "catkin_make" C-m
+
 
 
 while [ 1 ]; do

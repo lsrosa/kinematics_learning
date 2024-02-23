@@ -20,11 +20,9 @@ RUN apt-get update && \
         ros-noetic-gazebo-ros-pkgs ros-noetic-gazebo-ros-control \
         ros-noetic-moveit ros-noetic-tf-conversions \
         ros-noetic-robot-state-publisher \
-        ros-noetic-joint-trajectory-controller ros-noetic-joint-state-controller \
-        ros-noetic-gripper-action-controller ros-noetic-position-controllers \
+        ros-noetic-ros-control ros-noetic-ros-controllers \
+        ros-noetic-gripper-action-controller \
         ros-noetic-rqt ros-noetic-rqt-common-plugins
-
-
 
 # User: robot (password: robot) with sudo power
 
