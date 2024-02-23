@@ -76,6 +76,8 @@ if __name__ == '__main__':
 
     publish_rate = rospy.get_param('~publish_rate', 10)
 
+    rospy.sleep(3)  # needed to wait for controllers to be active
+
     link_names_in = ['r4_arm::EE_tip', 'die::die::link', 'die::die::link']
     link_names_out = ['r4_arm_EE', 'die', 'die_tip']
     frames = ['base_link', 'world', 'EE_tip']

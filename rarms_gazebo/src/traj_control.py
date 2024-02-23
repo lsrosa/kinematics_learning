@@ -1,13 +1,13 @@
 #!/usr/bin/python
 #
-# Joint position control
+# Joint trajectory position control
 
 import math, copy
 import numpy as np
-
+import argparse
 
 import rospy
-from std_msgs.msg import Float64MultiArray, String
+from std_msgs.msg import String
 from sensor_msgs.msg import JointState
 from geometry_msgs.msg import Pose, PoseStamped
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
@@ -28,28 +28,41 @@ joints_pos = None
 joints_vel = None
 joints_eff = None
 
+def get_njoints(arm):
+    n = 0
+    if arm=='r2_arm':
+        n = 2
+    elif arm=='r4_arm':
+        n = 4
+    return n
+
 def jointState_cb(data):
     global joints_pos, joints_vel, joints_eff
     joints_pos = data.position
     joints_vel = data.velocity
     joints_eff = data.effort
 
-def print_joint_state():
+def print_joint_state(arm):
     global joints_pos, joints_vel, joints_eff
-    pstr = "{:6.3f} {:6.3f} {:6.3f} {:6.3f}".format(*joints_pos) 
-    vstr = "{:6.3f} {:6.3f} {:6.3f} {:6.3f}".format(*joints_vel) 
-    estr = "{:6.3f} {:6.3f} {:6.3f} {:6.3f}".format(*joints_eff) 
+    n = get_njoints(arm)
+    fstr = "{:6.3f} " * n
+    pstr = fstr.format(*joints_pos) 
+    vstr = fstr.format(*joints_vel) 
+    estr = fstr.format(*joints_eff) 
     print( f"pos: {pstr} | vel: {vstr} | eff: {estr}" )
 
 
-def getTrajetoryMsg(target):
+def getPosTrajetoryMsg(arm,target):
     now = rospy.Time.now()
 
     tr = JointTrajectory()
     tr.header.seq = 1
     tr.header.stamp = now
     tr.header.frame_id = ''
-    tr.joint_names = ['joint_1', 'joint_2', 'joint_3', 'joint_4']
+    if arm=='r2_arm':
+        tr.joint_names = ['joint_1', 'joint_2']
+    else:
+        tr.joint_names = ['joint_1', 'joint_2', 'joint_3', 'joint_4']
 
     tr.points = [ ]    
     ts = rospy.Time(0)
@@ -66,20 +79,24 @@ def getTrajetoryMsg(target):
 
     return tr
 
+
+
+
 # blocking function
-def goto_joints_traj(act_traj,target,rate):
+def goto_joints_traj(arm,act_traj,target,rate):
     global joints_pos, joints_vel, joints_eff
 
     act_traj.wait_for_server()
 
     goal = FollowJointTrajectoryGoal()
 
-    goal.trajectory = getTrajetoryMsg(target)
+    goal.trajectory = getPosTrajetoryMsg(arm,target)
 
     goal.path_tolerance = []
     goal.goal_tolerance = []
     jt = JointTolerance()
-    for i in range(1,5):
+    n = get_njoints(arm)
+    for i in range(1,n+1):
         jname = "joint_%d" %i
         jt.name = jname
         jt.position = 0.1
@@ -96,7 +113,7 @@ def goto_joints_traj(act_traj,target,rate):
         rate.sleep()
         status = act_traj.get_state()
         result = act_traj.get_result() 
-        print_joint_state()
+        print_joint_state(arm)
         finished = (status == GoalStatus.SUCCEEDED) or (status == GoalStatus.ABORTED)
 
     print("status: %d - result: %r" %(status,result))
@@ -105,21 +122,44 @@ def goto_joints_traj(act_traj,target,rate):
     # read joints state after trajectory execution
     for _ in range(10):
         rate.sleep()
-        print_joint_state()
+        print_joint_state(arm)
     '''
 
 # non-blocking function
-def send_joints_traj(pub_send_traj,target,rate):
-
-    tr = getTrajetoryMsg(target)
+def send_joints_traj(arm,pub_send_traj,target,rate):
+    tr = getPosTrajetoryMsg(arm,target)
     pub_send_traj.publish(tr)
     rate.sleep()
 
 
-def main():
-    global pub_send_joints
+def position_test(arm):
+    global pub_send_joints, pub_send_traj
 
+    # position trajectory
+    if arm=='r2_arm':
+        target = [ [0,0], [0.3,-0.4], [-0.3,0.4], [0,0] ]
+    else:
+        target = [ [0,0,0,0], [0.3,-0.4,0.5,-0.6], [-0.3,0.4,-0.5,0.6], [0,0,0,0] ]
+
+    print("Send trajetory (non-blocking)")
+    send_joints_traj(arm,pub_send_traj,target,rate)  # non-blocking
+    print("Waiting...")
+    rospy.sleep(7)
+    print("Done")
+
+    print("Send trajetory (blocking)")
+    goto_joints_traj(arm,act_traj,target,rate)  # blocking
+    print("Done")
+
+
+
+if __name__ == '__main__':
+
+    arm = 'r4_arm' # r2_arm, r4_arm
+
+    print(f"Init node for robot arm {arm}...")
     rospy.init_node('traj_control', anonymous=True)
+
     rate = rospy.Rate(10) 
 
     # wait for ROS clock to publish something different from 0 
@@ -131,43 +171,29 @@ def main():
     t1 = rospy.Time.now()
 
     # publishers and subscribers must be created only once
-    pub_send_traj = rospy.Publisher('/r4_arm/joint_trajectory_controller/command', JointTrajectory, queue_size=1)
+    cmd_topic = f"/{arm}/joint_trajectory_controller/command"
+    ac_topic = f"/{arm}/joint_trajectory_controller/follow_joint_trajectory"
+    state_topic = f"/{arm}/joint_states"
+    
+    print("Subscribers...")
 
-    act_traj = actionlib.SimpleActionClient('/r4_arm/joint_trajectory_controller/follow_joint_trajectory', FollowJointTrajectoryAction)
-
-    sub_state = rospy.Subscriber('/r4_arm/joint_states', JointState, jointState_cb)
-
+    pub_send_traj = rospy.Publisher(cmd_topic, JointTrajectory, queue_size=1)
+    act_traj = actionlib.SimpleActionClient(ac_topic, FollowJointTrajectoryAction)
+    sub_state = rospy.Subscriber(state_topic, JointState, jointState_cb)
 
     # wait for some joint position
+    print("Wait for joints pos...")
     while joints_pos==None:
         rate.sleep()
 
     rospy.sleep(1)  # needed to wait for controllers to be active
 
-    # position trajectory
-    target = [ [0,0,0,0], [0.3,-0.4,0.5,-0.6], [-0.3,0.4,-0.5,0.6], [0,0,0,0] ]
-
-
-    print("Send trajetory (non-blocking)")
-    send_joints_traj(pub_send_traj,target,rate)  # non-blocking
-    print("Waiting...")
-    rospy.sleep(7)
-    print("Done")
-
-    print("Send trajetory (blocking)")
-    goto_joints_traj(act_traj,target,rate)  # blocking
-    print("Done")
+    try:
+        position_test(arm)
+    except rospy.ROSInterruptException:
+        print ("Program interrupted before completion")
 
     sub_state.unregister()
     pub_send_traj.unregister()
-
-
-if __name__ == '__main__':
-
-    try:
-        main()
-    except rospy.ROSInterruptException:
-        print ("Program interrupted before completion")
-        state_file.close()
 
 
