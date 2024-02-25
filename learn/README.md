@@ -52,7 +52,10 @@ in the docker container
     
 
 
-# Train FK Net
+# Train and use FKNet
+
+Train FKNet on AbsReacher6v and use it to control the robot on ReacherMod.
+No learning on Reader env.
 
         python3 fknet_learn.py
     
@@ -60,15 +63,17 @@ It saves the model parameters in `fknet_AbsReacher.th`
 
 Test the trained network
 
-        python3 fknet_learn.py --test
+        python3 fknet_learn.py --test --render
 
-It will compute the difference between the FKNet estimated end effector (EE) position
-and the real EE position from Reacher env
+It will compute the difference between the FKNet estimated end effector (EE) position and the real EE position from Reacher env
 
 The values of the errors are small (~ 0.01). Note this error is justified by the
 different model of Reacher wrt AbsReacher. 
 
 
+        python3 fknet_learn.py -eval 100
+
+Evaluation of control in Reacher Env using FKNet
 
 
 

@@ -22,6 +22,43 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 
 DEBUG=0
 
+
+def check_norm_pi(a):
+    if type(a)==torch.Tensor and len(a.shape)>0:
+        for i in range(a.shape[0]):
+            check_norm_pi(a[i])
+    else:
+        assert a<=math.pi and a>=-math.pi, f"Angle {a} not normalized"
+
+def norm_pi(a):   # [-PI, PI)
+    if (type(a)==torch.Tensor or type(a)==np.ndarray) and len(a.shape)>0:
+        for i in range(a.shape[0]):
+            try:
+                a[i] = norm_pi(a[i])
+            except Exception as e:
+                # print(e)
+                check_norm_pi(a[i])
+    else:
+        if a>=math.pi:
+            a -= 2*math.pi
+        elif a<-math.pi:
+            a += 2*math.pi
+    return a
+
+
+def vstr(x):
+    if type(x)==float:
+        r = f"{x:7.4f}"
+    elif type(x)!=list and len(x.shape)==0:
+        r = f"{x:7.4f}"
+    else:
+        r = ""
+        for i,_ in enumerate(x):
+            r += f"{float(x[i]):7.4f} "
+    return r
+
+
+
 # Incremental Dataset 
 class IncrDataset(Dataset):
     def __init__(self, size=0):
@@ -62,6 +99,7 @@ class FKNet(torch.nn.Module):
         )
 
     def forward(self, x):
+        x = norm_pi(x)
         y = self.fmodel(x)
         return y
 
@@ -85,7 +123,7 @@ class FKNet(torch.nn.Module):
         print("--------------------------")
 
 
-    def derivative(self, obs, grd=None):
+    def derivative(self, obs, grad0=None):
 
         with torch.enable_grad():
 
@@ -97,28 +135,68 @@ class FKNet(torch.nn.Module):
 
             y = self.forward(x)
 
-            if grd is None:
-                grd = torch.ones_like(y)   # same shape as ytest
-            elif type(grd)!=torch.Tensor:
-                grd = torch.tensor(grd).type(torch.float32)
+            if grad0 is None:
+                grad0 = torch.ones_like(y)   # same shape as ytest
+            elif type(grad0)!=torch.Tensor:
+                grad0 = torch.tensor(grad0).type(torch.float32)
 
-            # grad = torch.autograd.grad(outputs=y, inputs=x, grad_outputs=grd, retain_graph=None, create_graph=False, only_inputs=True, allow_unused=None, is_grads_batched=False, materialize_grads=False)
+            # grad = torch.autograd.grad(outputs=y, inputs=x, grad_outputs=grad0, retain_graph=None, create_graph=False, only_inputs=True, allow_unused=None, is_grads_batched=False, materialize_grads=False)
             # print(grad)
 
-            y.backward (gradient = grd, retain_graph = True)
+            y.backward (gradient = grad0, retain_graph = True)
 
             # print(x.grad.size())
 
             grad = x.grad
- 
+
         return grad
 
+
+    def inverse(self, x0, t, tol=0.01, min_grad=1e-5, iters=1000, verbose=0):
+        '''
+        Local Inverse FK
+            x0: start angles
+            t: target pos
+            tol: distance tolerance
+            Return: y: target angles
+        '''
+        if type(x0)!=torch.Tensor:
+            x0 = torch.tensor(x0).type(torch.float32)
+        if type(t)!=torch.Tensor:
+            t = torch.tensor(t).type(torch.float32)
+
+        eta = 0.5
+        m = 0
+        eta2 = 1
+        d = 1
+        nm = 1
+        x = x0
+        x = norm_pi(x)
+        p = self.forward(x)
+        i = 0
+        while d>tol and i<iters and nm > min_grad:
+            g = self.derivative(x,t-p)
+            m = np.clip(eta2 * m + eta * g, -0.1, 0.1)
+            nm = torch.norm(m)
+            x += m
+            x = norm_pi(x)
+            p = self.forward(x)
+            d = torch.norm(p-t)
+            i += 1
+            if verbose>0:
+                print(f"   -- x {vstr(x)} | g {vstr(g)} | m {vstr(m)} | p {vstr(p)} | t-p {vstr(t-p)} | d {vstr(d)}")
+
+        #if d>tol:
+        #    print(f"   inverse -- x {vstr(x)} | g {vstr(g)} | m {vstr(m)} | p {vstr(p)} | t-p {vstr(t-p)} | d {vstr(d)}")
+
+        return x
 
     def train(self, mode):  # called by RL alg
         # no training during RL learn
         return
 
     def train_from_data(self, data, niter=1000):
+        global log_writer, log_iter
 
         dl = DataLoader(dataset=data, batch_size=30, shuffle=True,
                 generator=torch.Generator(device=device))
@@ -146,6 +224,11 @@ class FKNet(torch.nn.Module):
             loss = loss_fn(y_pred,y)
             mean_loss += loss.item()
 
+            '''
+            log_writer.add_scalar("train/loss", loss, train_steps)
+            log_writer.flush()
+            '''
+
             if DEBUG>0 and t % 100 == 0:
                 t1 = timeit.default_timer()
                 print(f"     | loss {loss.item():.6f} | time {t1-t0:.2f}")
@@ -160,7 +243,7 @@ class FKNet(torch.nn.Module):
             # all learnable parameters in the model.
             loss.backward()
 
-            # Update the weights 
+            # Update the weights
             optimizer.step()
 
         end = timeit.default_timer()
@@ -230,10 +313,10 @@ class ModelLearnCB(BaseCallback):
 
                 if env.spec.id[0:10] == 'AbsReacher':
                     y = env.unwrapped.xpos
-                elif env.spec.id[0:7] == 'Reacher':
-                    pass
+                #elif env.spec.id[0:7] == 'Reacher':
+                #    TODO 
                 else:
-                    assert False, "Unknown environment !!!"
+                    assert False, f"Unknown environment {env.spec.id} !!!"
 
                 # print(f"fkdata {obs} {y}")
 
@@ -248,11 +331,11 @@ class ModelLearnCB(BaseCallback):
         """
         self.count_rollouts += 1
 
-        if self.count_rollouts%100==0:
-            print(f"ModelLearnCB: rollouts {self.count_rollouts}")
+        #if self.count_rollouts%100==0:
 
-            if self.fknet != None:
-                self.fknet.train_from_data(self.fkdata, niter=1000)
+        if self.fknet != None:
+            # print(f"ModelLearnCB: rollouts {self.count_rollouts}")
+            self.fknet.train_from_data(self.fkdata, niter=1000)
 
 
     def _on_training_end(self) -> None:

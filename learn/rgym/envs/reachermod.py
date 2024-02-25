@@ -16,7 +16,7 @@ from networks import *
 
 
 '''
-Reacher 
+Reacher
 - https://gymnasium.farama.org/environments/mujoco/reacher/
 - https://github.com/openai/gym/blob/master/gym/envs/mujoco/reacher_v4.py
 
@@ -85,7 +85,7 @@ class ReacherMod(gym.Wrapper):
 
     def get_reward(self):
         return self.current_reward, self.current_info
-        
+
 
 class ReacherMod2(gym.ObservationWrapper):
 
@@ -95,7 +95,7 @@ class ReacherMod2(gym.ObservationWrapper):
         self.observation_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(2,), dtype=np.float64)
 
     def observation(self, observation: ObsType) -> WrapperObsType:
-       
+
         return np.concatenate(
             [
                 self.unwrapped.data.qpos.flat[:2],          # joint angles
@@ -110,7 +110,7 @@ class ReacherMod4(gym.ObservationWrapper):
         self.observation_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(4,), dtype=np.float64)
 
     def observation(self, observation: ObsType) -> WrapperObsType:
-       
+
         return np.concatenate(
             [
                 self.unwrapped.data.qpos.flat[:2],          # joint angles
@@ -126,10 +126,10 @@ class ReacherMod6v(gym.ObservationWrapper):
         self.observation_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(6,), dtype=np.float64)
 
     def observation(self, observation: ObsType) -> WrapperObsType:
-       
+
         return np.concatenate(
             [
-                self.unwrapped.data.qpos.flat[:2],          # joint angles
+                norm_pi(self.unwrapped.data.qpos.flat[:2]), # joint angles
                 self.unwrapped.get_body_com("target")[0:2], # target
                 self.unwrapped.data.qvel.flat[:2]           # joint ang vel
             ] )
@@ -143,7 +143,7 @@ class ReacherMod6d(gym.ObservationWrapper):
         self.observation_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(6,), dtype=np.float64)
 
     def observation(self, observation: ObsType) -> WrapperObsType:
-       
+
         d = self.unwrapped.get_body_com("fingertip") - self.unwrapped.get_body_com("target")
 
         return np.concatenate(
@@ -164,7 +164,7 @@ class ReacherMod8(gym.ObservationWrapper):
     def observation(self, observation: ObsType) -> WrapperObsType:
 
         d = self.unwrapped.get_body_com("fingertip") - self.unwrapped.get_body_com("target")
-       
+
         return np.concatenate(
             [
                 self.unwrapped.data.qpos.flat[:2],          # joint angles
@@ -174,52 +174,54 @@ class ReacherMod8(gym.ObservationWrapper):
             ] )
 
 
+def calc_reward(d1, v1, info):
+
+    dn1 = np.clip(1-d1/0.4, 0, 1)          # [0,0.4] -> [1,0]
+    vn1 = np.clip(1-v1/12, 0, 1)           # [0,12]  -> [1,0]
+
+    vn1d = np.clip(math.pow(vn1,2*dn1), 0, 1)
+
+    g = 1.0 if (d1<0.05 and v1<1.0) else 0.0
+
+    rv = dn1 * vn1d
+
+    rv2 = dn1 if dn1 < 0.5 else rv
+
+    info['reward_goal'] = g
+    info['reward_vel'] = vn1d
+    info['reward_dist'] = dn1
+    # info['reward_ctrl'] = np.linalg.norm(action)
+
+    return rv + g
+
+
 class ReacherModSR(RewardWrapper):
 
     def __init__(self, env):
         super().__init__(env)
-        self.fknet = None
-
-    def set_fknet(self, fknet):
-        self.fknet = fknet
+        self.gamma = 0.99
 
     def reset(self, **kwargs):
         obs,info = super().reset(**kwargs)
+        p0 = self.unwrapped.get_body_com("fingertip") - self.unwrapped.get_body_com("target")
+        self.d0 = np.linalg.norm(p0)
         return obs,info
 
     def step(self, action):
+        # print(f" === action {action[0]} ===")
         observation, reward, terminated, truncated, info = self.env.step(action)
-        return observation, self.reward(observation,reward,info), terminated, truncated, info
+        return observation, self.reward(observation,action,reward,info), terminated, truncated, info
 
-    def reward(self, observation, reward, info):
-        if self.fknet != None:
-            x = observation[0:2]
-            t = observation[2:4]
-            p1 = self.fknet.predict(x).detach().numpy() - t
-        else:
-            p1 = self.unwrapped.get_body_com("fingertip") - self.unwrapped.get_body_com("target")
-        
-        d1 = np.linalg.norm(p1)
+    def reward(self, observation, action, reward, info):
+        pos1 = self.unwrapped.get_body_com("fingertip") - self.unwrapped.get_body_com("target")
         vel1 = self.unwrapped.data.qvel.flat[:2]
+        d1 = np.linalg.norm(pos1)
         v1 = np.linalg.norm(vel1)
 
-        dn1 = np.clip(1-d1/0.4, 0, 1)           # [0,0.4] -> [1,0]
-        vn1 = np.clip(1-v1/12, 0, 1)            # [0,12]  -> [1,0]
+        r = calc_reward(d1, v1, info)
+        return r
 
-        vn1d = np.clip(math.pow(vn1,2*dn1), 0, 1)              
 
-        g = 1.0 if (d1<0.05 and v1<1.0) else 0.0
-
-        rv = dn1 * vn1d
-
-        rv2 = dn1 if dn1 < 0.5 else rv
-
-        info['reward_goal'] = g
-        info['reward_vel'] = vn1d     
-        info['reward_dist'] = dn1
-        # info['reward_ctrl'] = np.linalg.norm(action)
-
-        return rv + g
 
 # fixed target
 class ReacherModFT(gym.Wrapper):
@@ -229,6 +231,9 @@ class ReacherModFT(gym.Wrapper):
         self.target = target
         self.mode = mode
 
+    def set_fixed_target(self, t):
+        self.target = t
+
     # set a fixed target
     def fix_target(self):
         if self.mode == 'A1':
@@ -236,7 +241,7 @@ class ReacherModFT(gym.Wrapper):
             self.target = [ 0.2*math.cos(a), 0.2*math.sin(a) ]
             # print(self.target)
         elif self.target == None:
-            self.target = [-0.1, 0.1]
+            self.target = [0, 0]
         self.env.unwrapped.goal = np.array(self.target)
         qpos = self.env.unwrapped.data.qpos
         qvel = self.env.unwrapped.data.qvel
@@ -265,6 +270,7 @@ class ReacherModA1(gym.Wrapper):
     def step(self, action):
         eaction = np.concatenate( [ action, np.array([0]) ] )
         return self.env.step(eaction)
+
 
 
 

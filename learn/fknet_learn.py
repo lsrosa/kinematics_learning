@@ -1,5 +1,7 @@
 import math, time, argparse
 import numpy as np
+import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 import gymnasium as gym
 import rgym
@@ -14,12 +16,13 @@ env_name = 'AbsReacher6v'
 fknet_file = "fknet_AbsReacher.pth"
 num_envs = 100
 
-def learn(seeds=[1999], learn_steps=100000):
 
-    env = make_vec_env(env_name, n_envs=num_envs) 
+def learn(seed=2000, learn_steps=100000, random_steps=True):
+
+    env = make_vec_env(env_name, n_envs=num_envs)
 
     fknet = FKNet(n_in=2, n_out=2)
-    try:            
+    try:
         fknet.load(fknet_file)
         print(f"Loaded FKnet {fknet_file}")
     except Exception as e:
@@ -29,47 +32,72 @@ def learn(seeds=[1999], learn_steps=100000):
     model_cb.env = env
     model_cb.fknet = fknet
 
-    for seed in seeds:
-        model = SAC("MlpPolicy", env, gradient_steps=2, 
+    current_seed = seed
+
+    try:
+        if random_steps:
+            a = np.zeros((num_envs,env.action_space.shape[0]))
+            istep = 0
+            run = True
+            while istep<learn_steps and run:
+                print(f"{istep:6d} | Training fknet with seed {current_seed} ...")
+                env.seed(seed=current_seed)
+                current_seed += num_envs
+                obs = env.reset()
+                model_cb._on_rollout_start()
+                for _ in range(100):
+                    for ienv in range(env.num_envs):
+                        a[ienv] = env.envs[ienv].action_space.sample()
+                    obs,_,_,_ = env.step(a)
+                    istep += num_envs
+                    run = model_cb._on_step()
+                model_cb._on_rollout_end()
+                # print(" -- rollout end --")
+
+        else:
+            model = SAC("MlpPolicy", env, gradient_steps=2,
                 seed=seed, verbose=0)
 
-        try:
             print(f"Training model with seed {seed} for {learn_steps} steps ...")
 
             model.learn(total_timesteps=learn_steps,
                 callback = model_cb,
                 )
-        except KeyboardInterrupt:
-            print("User quit!")
-            break
+            del model
 
-        del model
-        
-        
+    except KeyboardInterrupt:
+        print("User quit!")
+
+
+
+
     fknet.save(fknet_file)
     print(f"Saved FKnet {fknet_file}")
 
     env.close()
 
 
-def test(render=False):
+def one_run(env, fknet, verbose=0):
 
-    fknet = FKNet(n_in=2, n_out=2)
-    try:            
-        fknet.load(fknet_file)
-        print(f"Loaded FKnet {fknet_file}")
-    except Exception as e:
-        print(e)
-        return
-
-    env = gym.make("ReacherMod6v", render_mode="human" if render else None)
+    tol = 0.05
 
     obs, _ = env.reset()
 
-    t = obs[2:4]  
+    x0 = obs[0:2]
+    x = x0
+    t = obs[2:4]
 
-    print(f"t {float(t[0]):6.3f} {float(t[1]):6.3f}")
-    
+    if verbose>0:
+        print(f"x0 {vstr(x)} tt {vstr(t)}")
+
+    xt = fknet.inverse(x,t,tol=tol*0.9,iters=30000)
+    tt = fknet.forward(xt).detach().numpy()
+    xt = xt.detach().numpy()
+    d = np.linalg.norm(t-tt)
+    if verbose>0:
+        print(f"x0 {vstr(x0)} -> xtarget {vstr(xt)} -> ttarget {vstr(tt)} | {d} ")
+
+
     for i in range(100):
 
         x = obs[0:2]
@@ -80,47 +108,176 @@ def test(render=False):
 
         err = y_pred - y
 
-        d = y_pred - t
+        dy = y_pred - t
+        dx = x - xt
 
-        grad = np.zeros((2,))
+        g = fknet.derivative(x,dy)
+        #xt = fknet.inverse(x,t)
 
-        k1 = np.array([1000.0,1000.0])
-        k2 = np.array([0.2,1.0])
+        k1 = 5
+        vdes = - k1 * dx
 
-        if np.linalg.norm(d)<0.02:
-            print("************")
-            vdes = np.zeros((2,))
-        else:
-            grad = fknet.derivative(x,t).detach().numpy()
-            vdes = k1 * grad * d
-
-        a = k2 * (vdes - v)
+        dt = 0.2
+        a = (vdes - v) * dt
 
         a = np.clip(a,-1,1)
 
-        print(f"x {float(x[0]):6.3f} {float(x[1]):6.3f} | v {float(v[0]):6.3f} {float(v[1]):6.3f} | ee {float(y[0]):6.3f} {float(y[1]):6.3f} | pred {float(y_pred[0]):6.3f} {float(y_pred[1]):6.3f} | err {float(err[0]):6.3f} {float(err[1]):6.3f} | d {float(d[0]):6.3f} {float(d[1]):6.3f} | grad {float(grad[0]):6.3f} {float(grad[1]):6.3f} | vdes {float(vdes[0]):6.3f} {float(vdes[1]):6.3f} | a {float(a[0]):6.3f} {float(a[1]):6.3f}")
+        reached = np.linalg.norm(dy)<tol
+        reached_str = "******" if reached else ""
+        if verbose>0:
+            print(f"x {vstr(x)} | v {vstr(v)} | ee {vstr(y)} | pred {float(y_pred[0]):6.3f} {float(y_pred[1]):6.3f} | err {float(err[0]):6.3f} {float(err[1]):6.3f} | dx {float(dx[0]):6.3f} {float(dx[1]):6.3f} | dy {float(dy[0]):6.3f} {float(dy[1]):6.3f} | grad {float(g[0]):6.3f} {float(g[1]):6.3f} | vdes {float(vdes[0]):6.3f} {float(vdes[1]):6.3f} | a {float(a[0]):6.3f} {float(a[1]):6.3f} {reached_str}")
 
         obs,_,_,_,_ = env.step(a)
 
-        if render:
+    if not reached:
+        print(f"Failed | x0 {vstr(x0)} | t {vstr(t)} | ee {vstr(y)} | x {vstr(x)} | d {vstr(dy)} {vstr(np.linalg.norm(dy))} ")
+
+    return reached
+
+
+def test(render=False):
+
+    fknet = FKNet(n_in=2, n_out=2)
+    try:
+        fknet.load(fknet_file)
+        print(f"Loaded FKnet {fknet_file}")
+    except Exception as e:
+        print(e)
+        return
+
+    env = gym.make("ReacherMod6v", render_mode="human" if render else None)
+
+    one_run(env,fknet,verbose=1)
+
+    '''
+    if render:
+        for i in range(30):
+            env.render()
             time.sleep(0.1)
+    '''
+
+
+def test2(atarget=None, ttarget=None, astart=None, render=False, verbose=0):
+
+    fknet = FKNet(n_in=2, n_out=2)
+    try:
+        fknet.load(fknet_file)
+        print(f"Loaded FKnet {fknet_file}")
+    except Exception as e:
+        print(e)
+        return
+
+    env = gym.make("AbsReacher6v", render_mode="human" if render else None)
+
+    if atarget is not None:
+        xt = atarget
+        tt,tt_l1 = env.unwrapped.fk(xt)
+        ttp = fknet.predict(xt)
+    elif ttarget is not None:
+        xt = [-999,-999]
+        tt = ttarget
+        tt_l1 = None
+        ttp = tt
+
+    if astart is not None:
+        x0 = astart
+    else:
+        x0 = [ 0.0, 0.0 ]
+    t0,t0_l1 = env.unwrapped.fk(x0)
+    t0p = fknet.predict(x0)
+    dt = np.array(tt)-np.array(t0)
+    g = fknet.derivative(x0,dt)
+    print(f" x0 {vstr(x0)} | t0' {vstr(t0p)} | t0 {vstr(t0)}")
+    print(f" xt {vstr(xt)} | tt' {vstr(ttp)} | tt {vstr(tt)}")
+    print(f" x0 {vstr(x0)} | xt {vstr(xt)} | t0p {vstr(t0p)} | tt {vstr(tt)} | dt {vstr(dt)} | g {vstr(g)}")
+
+    ixt = fknet.inverse(x0,tt,iters=1000,verbose=1)
+    itt,itt_l1 = env.unwrapped.fk(ixt)
+
+    print(f" xt {vstr(xt)} | ixt {vstr(ixt)} ")
+
+    if render:
+        fig, ax = plt.subplots()
+        ax.set_xlim(-0.25, 0.25)
+        ax.set_ylim(-0.25, 0.25)
+        ax.plot(t0[0], t0[1], 'o', color='tab:brown')
+        ax.plot(tt[0], tt[1], 'o', color='tab:red')
+        ax.plot(itt[0], itt[1], 'o', color='tab:green')
+        ax.plot(0,0, '+', color=(0,0,0))
+        #ax.plot([0,t0_l1[0]], [0, t0_l1[1]], color=(0,0,0))
+        #ax.plot([t0_l1[0],t0[0]], [t0_l1[1], t0[1]], color=(0,0,0))
+        if tt_l1 != None:
+            ax.plot([0,tt_l1[0]], [0, tt_l1[1]], color=(0,0,0))
+            ax.plot([tt_l1[0],tt[0]], [tt_l1[1], tt[1]], color=(0,0,0))
+        ax.plot([0,itt_l1[0]], [0, itt_l1[1]], color=(0,0,0))
+        ax.plot([itt_l1[0],itt[0]], [itt_l1[1], itt[1]], color=(0,0,0))
+
+        plt.show()
+
+    env.close()
+
+    env = gym.make("ReacherMod6vSRFT", render_mode="human" if render else None)
+
+    env.set_fixed_target(tt)
+
+    one_run(env,fknet,verbose=0)
+
+    env.close()
+
+
+
+def eval_fknet(n=100):
+
+    env = gym.make("ReacherMod6vSR")
+
+    # env = gym.make("ReacherMod6vSRFT")
+    # env.set_fixed_target([0.0303, -0.1172])
+
+    fknet = FKNet(n_in=2, n_out=2)
+    try:
+        fknet.load(fknet_file)
+        print(f"Loaded FKnet {fknet_file}")
+    except Exception as e:
+        print(e)
+        return
+
+    print(f"Evaluating FKNet for {n} episodes")
+    r = 0
+    try:
+        for i in tqdm(range(n)):
+            r += one_run(env,fknet,verbose=0)
+        i += 1
+    except:
+        pass
+    print(f"Success rate = {r}/{i} = {r/i*100:.2f} %")
+
 
 
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--test', default = False, action ='store_true', 
-        help='Test saved model')
-    parser.add_argument('--render', default = False, action ='store_true', 
+    parser.add_argument('--test', default = False, action ='store_true',
+        help='Test target')
+    parser.add_argument('-astart', type=float, nargs=2, default = None,
+        help='Test start angle')
+    parser.add_argument('-atarget', type=float, nargs=2, default = None,
+        help='Test target angle')
+    parser.add_argument('-ttarget', type=float, nargs=2, default = None,
+        help='Test target position')
+    parser.add_argument('-eval', type=int, default = None,
+        help='Eval iterations')
+    parser.add_argument('--render', default = False, action ='store_true',
         help='Render')
 
     args = parser.parse_args()
 
     if args.test:
         test(args.render)
+    elif args.atarget is not None or args.ttarget is not None:
+        test2(atarget=args.atarget, ttarget=args.ttarget, astart=args.astart, render=args.render)
+    elif args.eval is not None:
+        eval_fknet(args.eval)
     else:
-        learn(seeds=[1999,1998,1997], learn_steps=300000)
-    
-
+        learn(seed=2000, learn_steps=100000)
 
