@@ -96,9 +96,15 @@ def load_model(alg, env, seed=None, fknet=None):
 
 
 
-def play(env_name, alg, seed, n=5, fknet=None):
+def play(env_name, alg, seed, n=5, fknet_file=None):
 
     env = gym.make(env_name, render_mode="human")
+
+    if fknet_file != None:
+        fknet = FKNet(n_in=2, n_out=2)
+        fknet.load(fknet_file)
+        print(f"Loaded FKnet {fknet_file}")
+        env.set_fknet(fknet)
 
     model = load_model(alg, env, seed, fknet)
 
@@ -126,9 +132,16 @@ def play(env_name, alg, seed, n=5, fknet=None):
     env.close()
 
 
-def eval_policy(env_name, alg, seed, n=100, fknet=None):
+def eval_policy(env_name, alg, seed, n=100, fknet_file=None):
 
     env = gym.make(env_name)
+
+    if fknet_file != None:
+        fknet = FKNet(n_in=2, n_out=2)
+        fknet.load(fknet_file)
+        print(f"Loaded FKnet {fknet_file}")
+        env.set_fknet(fknet)
+
     model = load_model(alg, env, seed, fknet)
 
     env = Monitor(env)
@@ -250,8 +263,8 @@ if __name__ == '__main__':
     print(args)
 
     if args.play:
-        play(args.env, args.alg, args.seed, n=10, fknet=args.fknet)
+        play(args.env, args.alg, args.seed, n=10, fknet_file=args.fknet)
     elif args.eval:
-        eval_policy(args.env, args.alg, args.seed, n=100, fknet=args.fknet)
+        eval_policy(args.env, args.alg, args.seed, n=100, fknet_file=args.fknet)
     else:
         learn(args.env, args.alg, args.learn_steps, args.seed, args.fknet)
