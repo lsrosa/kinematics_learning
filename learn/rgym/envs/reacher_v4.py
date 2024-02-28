@@ -1,4 +1,5 @@
 import numpy as np
+import math
 
 from gymnasium import utils
 from gymnasium.envs.mujoco import MujocoEnv
@@ -140,6 +141,10 @@ class ReacherEnv(MujocoEnv, utils.EzPickle):
             default_camera_config=DEFAULT_CAMERA_CONFIG,
             **kwargs,
         )
+        self.angle_target = False
+
+    def set_angle_target(self, v):
+        self.angle_target = v
 
     def step(self, a):
         vec = self.get_body_com("fingertip") - self.get_body_com("target")
@@ -171,15 +176,30 @@ class ReacherEnv(MujocoEnv, utils.EzPickle):
             dict(reward_dist=reward_dist, reward_ctrl=reward_ctrl),
         )
 
+
+    def fk(self, x):
+        R1 = 0.1
+        R2 = 0.1
+        l1 = [ R1*math.cos(x[0]), R1*math.sin(x[0]) ]
+        y = [ l1[0]+R2*math.cos(x[0]+x[1]),
+              l1[1]+R2*math.sin(x[0]+x[1]) ]  # robot ee pos
+        return y, l1
+
     def reset_model(self):
         qpos = (
             self.np_random.uniform(low=-0.1, high=0.1, size=self.model.nq)
             + self.init_qpos
         )
-        while True:
-            self.goal = self.np_random.uniform(low=-0.2, high=0.2, size=2)
-            if np.linalg.norm(self.goal) < 0.2:
-                break
+
+        if self.angle_target:
+            self.xgoal = self.np_random.uniform(low=-math.pi, high=math.pi, size=2)
+            self.goal,_ = self.fk(self.xgoal)
+        else:
+            while True:
+                self.goal = self.np_random.uniform(low=-0.2, high=0.2, size=2)
+                if np.linalg.norm(self.goal) < 0.2:
+                    break
+
         qpos[-2:] = self.goal
         qvel = self.init_qvel + self.np_random.uniform(
             low=-0.005, high=0.005, size=self.model.nv

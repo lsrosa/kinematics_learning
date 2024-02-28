@@ -54,17 +54,17 @@ def create_model(alg, env, seed=None, fknet=None):
     model = None
     if alg=="PPO":
         model = PPO("MlpPolicy", env, seed=seed,
-            learning_rate = 0.005, 
+            learning_rate = 0.005,
             tensorboard_log=log_dir,
             verbose=0)
     elif alg=="A2C":
         model = A2C("MlpPolicy", env, seed=seed,
-            learning_rate = 0.0005, 
+            learning_rate = 0.0005,
             tensorboard_log=log_dir,
             verbose=0)
     elif alg=="SAC":
         model = SAC("MlpPolicy", env,  gradient_steps=2, seed=seed,
-            verbose=0, tensorboard_log=log_dir) 
+            verbose=0, tensorboard_log=log_dir)
     else:
         assert False, f"Unknown algorithm {alg}"
 
@@ -98,7 +98,7 @@ def load_model(alg, env, seed=None, fknet=None):
 
 def play(env_name, alg, seed, n=5, fknet=None):
 
-    env = gym.make(env_name, render_mode="human") 
+    env = gym.make(env_name, render_mode="human")
 
     model = load_model(alg, env, seed, fknet)
 
@@ -122,7 +122,7 @@ def play(env_name, alg, seed, n=5, fknet=None):
                 v = env.unwrapped.data.qvel.flat[:2]
                 v2 = np.linalg.norm(v)
                 print(f"d {d:.3f} v {v2:.3f} - episode reward {cr:.3f}")
-    
+
     env.close()
 
 
@@ -159,7 +159,7 @@ def learn(env_name, alg, learn_steps=1e6, seed=None, fknet_file=None):
         fknet.load(fknet_file)
         print(f"Loaded FKnet {fknet_file}")
 
-    vec_env = make_vec_env(functools.partial(make_env,env_name=env_name,fknet=fknet), n_envs=32) 
+    vec_env = make_vec_env(functools.partial(make_env,env_name=env_name,fknet=fknet), n_envs=32)
     print("----------------------------")
     print(f"Obs: {vec_env.observation_space}   Act: {vec_env.action_space}")
 
@@ -175,7 +175,7 @@ def learn(env_name, alg, learn_steps=1e6, seed=None, fknet_file=None):
         print(f"Lock found {lock_file}")
         sys.exit(1)
 
-    
+
     lockf = open(lock_file, 'w')
     lockf.close()
 
@@ -193,12 +193,17 @@ def learn(env_name, alg, learn_steps=1e6, seed=None, fknet_file=None):
     print(f"Trainable parameters {train_nparams}")
     print("----------------------------")
 
+    if fknet != None:
+        for env in vec_env.envs:
+            env.set_fknet(fknet)
+
+
     print(f"Learning timesteps = {model.num_timesteps}")
 
     try:
         print(f"Training model {model_file} ...")
 
-        model.learn(total_timesteps=learn_steps, 
+        model.learn(total_timesteps=learn_steps,
             reset_num_timesteps=reset_num_timesteps,
             tb_log_name=log_name,
             )
@@ -228,7 +233,7 @@ if __name__ == '__main__':
 
     parser.add_argument("-alg", type=str, default="PPO",
         help="RL algorithm")
-    parser.add_argument("-env", type=str, default="Reacher-v4", 
+    parser.add_argument("-env", type=str, default="Reacher-v4",
         help="Gym environment (default: Reacher-v4)")
     parser.add_argument("-learn_steps", type=int, default=1e6,
         help="Learning steps (default: 1,000,000)")
@@ -236,9 +241,9 @@ if __name__ == '__main__':
         help="Random seed (default: None)")
     parser.add_argument("-fknet", type=str, default=None,
         help="FKNet model (default: None)")
-    parser.add_argument('--play', default = False, action ='store_true', 
+    parser.add_argument('--play', default = False, action ='store_true',
         help='Play one episode from saved model')
-    parser.add_argument('--eval', default = False, action ='store_true', 
+    parser.add_argument('--eval', default = False, action ='store_true',
         help='Eval saved model')
 
     args = parser.parse_args()
@@ -250,5 +255,3 @@ if __name__ == '__main__':
         eval_policy(args.env, args.alg, args.seed, n=100, fknet=args.fknet)
     else:
         learn(args.env, args.alg, args.learn_steps, args.seed, args.fknet)
-
-

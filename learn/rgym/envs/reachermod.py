@@ -118,6 +118,9 @@ class ReacherMod4(gym.ObservationWrapper):
             ] )
 
 
+
+
+
 class ReacherMod6v(gym.ObservationWrapper):
 
     def __init__(self, env: gym.Env[ObsType, ActType]):
@@ -148,9 +151,67 @@ class ReacherMod6d(gym.ObservationWrapper):
 
         return np.concatenate(
             [
-                self.unwrapped.data.qpos.flat[:2],          # joint angles
-                self.unwrapped.get_body_com("target")[0:2], # target
-                d[:2]                                       # tip - target pos
+                norm_pi(self.unwrapped.data.qpos.flat[:2]),          # joint angles
+                d[0:2],                                     # tip - target pos
+                self.unwrapped.data.qvel.flat[:2]           # joint ang vel
+            ] )
+
+
+
+class ReacherMod4d(gym.ObservationWrapper):
+
+    def __init__(self, env: gym.Env[ObsType, ActType]):
+        """Constructor for the observation wrapper."""
+        gym.Wrapper.__init__(self, env)
+        self.observation_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(4,), dtype=np.float64)
+
+    def observation(self, observation: ObsType) -> WrapperObsType:
+
+        d = self.unwrapped.get_body_com("fingertip") - self.unwrapped.get_body_com("target")
+
+        return np.concatenate(
+            [
+                # norm_pi(self.unwrapped.data.qpos.flat[:2]),          # joint angles
+                d[0:2],                                     # tip - target pos
+                self.unwrapped.data.qvel.flat[:2]           # joint ang vel
+            ] )
+
+
+class ReacherMod6a(gym.ObservationWrapper):
+
+    def __init__(self, env: gym.Env[ObsType, ActType]):
+        """Constructor for the observation wrapper."""
+        gym.Wrapper.__init__(self, env)
+        self.observation_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(6,), dtype=np.float64)
+        self.unwrapped.set_angle_target(True)
+
+    def observation(self, observation: ObsType) -> WrapperObsType:
+
+        return np.concatenate(
+            [
+                norm_pi(self.unwrapped.data.qpos.flat[:2]), # joint angles
+                self.unwrapped.xgoal,                       # target angles
+                self.unwrapped.data.qvel.flat[:2]           # joint ang vel
+            ] )
+
+
+class ReacherMod4a(gym.ObservationWrapper):
+
+    def __init__(self, env: gym.Env[ObsType, ActType]):
+        """Constructor for the observation wrapper."""
+        gym.Wrapper.__init__(self, env)
+        self.observation_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(4,), dtype=np.float64)
+        self.unwrapped.set_angle_target(True)
+
+    def observation(self, observation: ObsType) -> WrapperObsType:
+
+        a = norm_pi(self.unwrapped.data.qpos.flat[0:2]-self.unwrapped.xgoal[0:2])   # angle diff
+
+
+        return np.concatenate(
+            [
+                a,                                      # joint angle diff
+                self.unwrapped.data.qvel.flat[:2]       # joint ang vel
             ] )
 
 
@@ -335,10 +396,29 @@ def reachermod6vsrfta1(**args):
     env = ReacherModSR(env)
     return env
 
-def reachermod6d(**args):
+def reachermod6dsr(**args):
     env = gym.make("Reacher-v4b", **args)
     env = ReacherMod6d(env)
-    return envb
+    env = ReacherModSR(env)
+    return env
+
+def reachermod4dsr(**args):
+    env = gym.make("Reacher-v4b", **args)
+    env = ReacherMod4d(env)
+    env = ReacherModSR(env)
+    return env
+
+def reachermod4asr(**args):
+    env = gym.make("Reacher-v4b", **args)
+    env = ReacherMod4a(env)
+    env = ReacherModSR(env)
+    return env
+
+def reachermod6asr(**args):
+    env = gym.make("Reacher-v4b", **args)
+    env = ReacherMod6a(env)
+    env = ReacherModSR(env)
+    return env
 
 def reachermod8(**args):
     env = gym.make("Reacher-v4b", **args)
@@ -400,15 +480,26 @@ register(
 )
 
 register(
-     id="ReacherMod6d",
-     entry_point="rgym.envs.reachermod:reachermod6d",
+     id="ReacherMod6dSR",
+     entry_point="rgym.envs.reachermod:reachermod6dsr",
 )
 
+register(
+     id="ReacherMod6aSR",
+     entry_point="rgym.envs.reachermod:reachermod6asr",
+)
+
+register(
+     id="ReacherMod4aSR",
+     entry_point="rgym.envs.reachermod:reachermod4asr",
+)
+
+register(
+     id="ReacherMod4dSR",
+     entry_point="rgym.envs.reachermod:reachermod4dsr",
+)
 
 register(
      id="ReacherMod8",
      entry_point="rgym.envs.reachermod:reachermod8",
 )
-
-
-
