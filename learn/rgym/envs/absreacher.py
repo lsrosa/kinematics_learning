@@ -162,8 +162,21 @@ class AbsReacher(gym.Env):
         self.action[0] = action[0]  # [-1,1]
         self.action[1] = action[1]
 
-        self.w[0] = self.acc_scale_factor * self.action[0]
-        self.w[1] = self.acc_scale_factor * self.action[1]
+        a = np.copy(action)
+
+        # velocity limit
+        if self.v[0]>10 and a[0]>0:
+            a[0] = 0
+        elif self.v[0]<-10 and a[0]<0:
+            a[0] = 0
+        if self.v[1]>10 and a[1]>0:
+            a[1] = 0
+        elif self.v[1]<-10 and a[1]<0:
+            a[1] = 0
+
+
+        self.w[0] = self.acc_scale_factor * a[0]
+        self.w[1] = self.acc_scale_factor * a[1]
 
         self.v[0] = self.v[0] + self.w[0] * self.dt
         self.v[1] = self.v[1] + self.w[1] * self.dt
