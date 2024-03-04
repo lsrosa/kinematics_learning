@@ -370,7 +370,10 @@ class ReacherRewardShape(gym.Wrapper):
             v0 = float(v0[0])  # take values from 1st net (???)
             v1 = float(v1[0])
 
-            rs = reward + (v1 - self.gamma * v0)
+            #rs = reward + (self.gamma * v1 - v0)
+            #rs = info['reward_goal'] + (self.gamma * v1 - v0)
+            rs = reward + (v1 - v0)
+            #rs = info['reward_goal'] + (v1 - v0)
         else:
             print("Warning: shaper not provided!!!")
             rs = reward
