@@ -24,6 +24,8 @@ def get_njoints(arm):
     n = 0
     if arm=='r2_arm':
         n = 2
+    elif arm=='r3_arm':
+        n = 3
     elif arm=='r4_arm':
         n = 4
     return n
@@ -93,7 +95,7 @@ def goto_joints_position(pub_send_joints,arm,target,rate,joint_pos_tolerance=0.0
 def main():
     global pub_send_joints
 
-    arm = 'r2_arm'
+    arm = 'r3_arm'
     
     print(f"Init ROS node for {arm} control...")
     rospy.init_node('pos_control', anonymous=True)
@@ -122,6 +124,8 @@ def main():
 
     if arm=='r2_arm':    
         targets = [ [0,0], [0.3,-0.4], [-0.3,0.4], [0,0] ]
+    elif arm=='r3_arm':    
+        targets = [ [0,0,0], [0.6,-0.8,0.6], [-0.6,0.8,-0.6], [0,0,0] ]
     else:
         targets = [ [0,0,0,0], [0.3,-0.4,0.5,-0.6], [-0.3,0.4,-0.5,0.6], [0,0,0,0] ]
     

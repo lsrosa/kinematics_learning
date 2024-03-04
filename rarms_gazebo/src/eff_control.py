@@ -32,6 +32,8 @@ def get_njoints(arm):
     n = 0
     if arm=='r2_arm':
         n = 2
+    elif arm=='r3_arm':
+        n = 3
     elif arm=='r4_arm':
         n = 4
     return n
@@ -60,17 +62,21 @@ def effort_test(arm):
 
     global pub_send_eff
     
-    rate = rospy.Rate(10) 
+    rate = rospy.Rate(25) 
 
     msg = Float64MultiArray()
 
-    target = [ [0.01, 0.02], [-0.01, -0.02], [0,0] ]
+
+    if arm=='r2_arm':    
+        targets = [ [0,0], [0.3,-0.4], [-0.3,0.4], [0,0] ]
+    elif arm=='r3_arm':    
+        targets = [ [0.002,0,0], [0.003,-0.005,0.003], [-0.005,0.005,-0.005], [0,0,0] ]
+
     msg.layout = MultiArrayLayout()
 
-
-    for t in target:
+    for t in targets:
         msg.data = t
-        for i in range(50):
+        for i in range(200):
             pub_send_eff.publish(msg)
             #print(msg)
             print_joint_state(arm)
@@ -81,7 +87,7 @@ def effort_test(arm):
 
 if __name__ == '__main__':
 
-    arm = 'r2_arm' # 'r4_arm'
+    arm = 'r3_arm' # 'r4_arm'
 
     print("Init node...")
     rospy.init_node('traj_control', anonymous=True)

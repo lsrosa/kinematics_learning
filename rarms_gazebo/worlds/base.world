@@ -42,13 +42,13 @@
       <include>
         <uri>model://die</uri>
       </include>
-      <pose>1.41 1.59 0.01 0 0 0</pose>
+      <pose>0.07 0.0 0.01 0 0 0</pose>
       <static>false</static>
     </model>
 
     <gui fullscreen='0'>
       <camera name='user_camera'>
-        <pose>0 0.5 0.5  0 0.77 0</pose>
+        <pose>-0.5 0 0.5  0 0.77 0</pose>
         <view_controller>orbit</view_controller>
         <projection_type>perspective</projection_type>
       </camera>

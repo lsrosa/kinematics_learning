@@ -1,0 +1,122 @@
+<?xml version="1.0"?>
+
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="hand">
+
+    <xacro:macro name="gazebo_red_link_color_block" params="link_name">
+    <gazebo reference="${link_name}">
+    <visual>
+      <material>
+	    <ambient>1.0 0.0 0.0 1.0</ambient>
+	    <diffuse>0.56666695 0.56666695 0.56666695 1.0</diffuse>
+	    <specular>0.6000003 0.6000003 0.6000003 1.0</specular>
+      </material>
+    </visual>
+    </gazebo>
+    </xacro:macro>
+
+
+
+
+
+    <!--=============================================================================-->
+
+    <!-- EE -->
+    <xacro:property name="base_EE_1" value="0.004" /> 
+    <xacro:property name="length_EE_1" value="0.025" />
+    <xacro:property name="length_EE_2" value="0.020" />
+    <xacro:property name="mass_EE1" value="0.020" />
+    <xacro:property name="mass_EE21" value="0.010" />
+    <xacro:property name="mass_EE22" value="0.010" />
+
+    <!--EE_part_1-->
+    <link name="EE_part_1">
+        <xacro:box_inertial_block mass="${mass_EE1}" x="${base_EE_1}" y="${base_EE_1}" z="${length_EE_1}"/>
+        <visual>
+            <origin xyz="0.0 0.0 ${length_EE_1/2.0}" rpy="0.0 0.0 0.0"/>
+            <geometry>
+                <box size="${base_EE_1} ${base_EE_1} ${length_EE_1}"/>
+            </geometry>
+            <material name="Grey"/>
+        </visual>
+
+        <collision>
+            <origin xyz="0.0 0.0 ${length_EE_1/2.0}" rpy="0.0 0.0 0.0"/>
+            <geometry>
+                <box size="${base_EE_1} ${base_EE_1} ${length_EE_1}"/>
+            </geometry>
+        </collision>
+    </link>
+
+    
+    <joint name="EE_joint_21" type="fixed">
+        <origin xyz="${-base_EE_1/2} 0.0 ${0.0+base_EE_1/4}" rpy="0.0 ${-M_PI/2.0} 0.0"/>
+        <parent link="EE_part_1"/>
+        <child link="EE_part_21"/>
+    </joint>
+    
+    <gazebo reference="EE_joint_21">
+        <disableFixedJointLumping>true</disableFixedJointLumping> 
+        <preserveFixedJoint>true</preserveFixedJoint>
+    </gazebo>
+    
+    <joint name="EE_joint_22" type="fixed">
+        <origin xyz="${-base_EE_1/2} 0.0 ${length_EE_1-base_EE_1/4}" rpy="0.0 ${-M_PI/2.0} 0.0"/>
+        <parent link="EE_part_1"/>
+        <child link="EE_part_22"/>
+    </joint>    
+    
+    <gazebo reference="EE_joint_22">
+        <disableFixedJointLumping>true</disableFixedJointLumping> 
+        <preserveFixedJoint>true</preserveFixedJoint>
+    </gazebo>
+
+    <!--=============================================================================-->
+    <!--EE_part_2-->
+    <link name="EE_part_21">
+        <xacro:box_inertial_block mass="${mass_EE21}" x="${base_EE_1/2}" y="${base_EE_1}" z="${length_EE_2}"/>
+        <visual>
+            <origin xyz="0.0 0.0 ${length_EE_2/2.0}" rpy="0.0 0.0 0.0"/>
+            <geometry>
+                <box size="${base_EE_1/2} ${base_EE_1} ${length_EE_2}"/>
+            </geometry>
+            <material name="Grey"/>
+        </visual>
+
+        <collision>
+            <origin xyz="0.0 0.0 ${length_EE_2/2.0}" rpy="0.0 0.0 0.0"/>
+            <geometry>
+                <box size="${base_EE_1/2} ${base_EE_1} ${length_EE_2}"/>
+            </geometry>
+        </collision>
+    </link>
+    
+    
+    <link name="EE_part_22">
+        <xacro:box_inertial_block mass="${mass_EE22}" x="${base_EE_1/2}" y="${base_EE_1}" z="${length_EE_2}"/>
+        <visual>
+            <origin xyz="0.0 0.0 ${length_EE_2/2.0}" rpy="0.0 0.0 0.0"/>
+            <geometry>
+                <box size="${base_EE_1/2} ${base_EE_1} ${length_EE_2}"/>
+            </geometry>
+            <material name="Grey"/>
+        </visual>
+
+        <collision>
+            <origin xyz="0.0 0.0 ${length_EE_2/2.0}" rpy="0.0 0.0 0.0"/>
+            <geometry>
+                <box size="${base_EE_1/2} ${base_EE_1} ${length_EE_2}"/>
+            </geometry>
+        </collision>
+    </link>
+
+
+    <xacro:gazebo_red_link_color_block link_name="EE_part_1"/>
+    <xacro:gazebo_red_link_color_block link_name="EE_part_21"/>
+    <xacro:gazebo_red_link_color_block link_name="EE_part_22"/>
+
+
+
+
+
+</robot>
+

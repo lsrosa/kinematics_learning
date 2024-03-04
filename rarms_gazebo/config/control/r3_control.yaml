@@ -1,4 +1,4 @@
-r2_arm:
+r3_arm:
 
   # Publish all joint states
   joint_state_controller:
@@ -12,10 +12,13 @@ r2_arm:
     joints:
       - joint_1
       - joint_2
+      - joint_3
     joint_1:
-      pid: {p: 1, i: 0, d: 0 }
+      pid: {p: 0.7, i: 0, d: 0.0001 }
     joint_2:
-      pid: {p: 1, i: 0, d: 0 }
+      pid: {p: 0.7, i: 0, d: 0.0001 }
+    joint_3:
+      pid: {p: 0.7, i: 0, d: 0.0001 }
       
       
   # Trajectory controller
@@ -24,6 +27,7 @@ r2_arm:
     joints:
       - joint_1
       - joint_2
+      - joint_3
 
     constraints:
       goal_time: 0.5                   # Override default
@@ -34,10 +38,14 @@ r2_arm:
       joint_2:
         trajectory: 0.05               # Not enforced if unspecified
         goal: 0.01                     # Not enforced if unspecified
+      joint_3:
+        trajectory: 0.05               # Not enforced if unspecified
+        goal: 0.01                     # Not enforced if unspecified
 
     gains: # Required because this is position control using an effort interface
       joint_1: {p: 1, i: 0, d: 0, i_clamp: 1}
       joint_2: {p: 1, i: 0, d: 0, i_clamp: 1}
+      joint_3: {p: 1, i: 0, d: 0, i_clamp: 1}
 
     state_publish_rate:  50            # Override default
     action_monitor_rate: 50            # Override default
@@ -50,42 +58,13 @@ r2_arm:
     joints:
       - joint_1
       - joint_2
-
-
-
-
-
-###  OTHERS ...
-
-
-
-  # to use when controllers are position_controllers/JointPositionController type
-  gazebo_ros_control/pid_gains:
-    joint_1: {p: 1, i: 0, d: 0 }
-    joint_2: {p: 1, i: 0, d: 0 }
-
-
-  # velocity controller
-  joint1_velocity_controller:
-    type: "effort_controllers/JointVelocityController"
-    joint: joint_1
-    pid: {p: 1.0, i: 0.0, d: 0.0}
-
-
-
-
-
-  joint_effort_controller:
-    type: effort_controller/JointEffortController
-    joints:
-      - joint_1
-      - joint_2
+      - joint_3
 
 
 
 
 # check controllers type
-# rosservice call /r2_arm/controller_manager/list_controller_types
+# rosservice call /r4_arm/controller_manager/list_controller_types
 # sudo apt install ros-noetic-ros-control ros-noetic-ros-controllers 
 
 
