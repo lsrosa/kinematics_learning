@@ -25,4 +25,7 @@
 
         docker exec -it learn tmux a
 
+# Patch
+
+        cp ~/src/iros2024/docker/patch/mujoco_rendering.py ~/.local/lib/python3.8/site-packages/gymnasium/envs/mujoco/
 

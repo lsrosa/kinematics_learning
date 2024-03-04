@@ -45,17 +45,9 @@ RUN pip install torch==2.2.0 --index-url https://download.pytorch.org/whl/cpu
 
 RUN pip install stable-baselines3[extra]==2.2.1
 
-RUN pip3 install mujoco==3.1.1
+RUN pip3 install mujoco==2.3.7
 
 RUN pip3 install torchdata==0.7.1
-
-
-#RUN mkdir -p /home/robot/.mujoco \
-#    && wget https://mujoco.org/download/mujoco210-linux-x86_64.tar.gz -O mujoco.tar.gz \
-#    && tar -xf mujoco.tar.gz -C /home/robot/.mujoco \
-#    && rm mujoco.tar.gz
-#ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/robot/.mujoco/mujoco210/bin
-
 
 #RUN pip3 install jupyter notebook jupyter_http_over_ws
 
