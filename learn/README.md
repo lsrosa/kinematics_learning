@@ -79,13 +79,26 @@ Evaluation of control in Reacher Env using FKNet
 
 # Learn policy
 
-Learn SAC policy using fknet instead of env FK
+1. Learn SAC policy using fknet instead of env FK
 
-        python3 learn.py -env ReacherMod6vSR -alg SAC -learn_steps 700000 [-seed <n>] -fknet fknet_AbsReacher.pth
+        python3 learn.py -env ReacherMod6vSR -alg SAC [-seed <n>] -fknet fknet_AbsReacher.pth -learn_steps 700000
 
 
 Compare results obtained with SAC using env FK. They are quite similar.
 
 It shows that estimating FK in an abstract simulator, allows to learn in the concrete simulator, without the perfect knowledge of the FK model in the more concrete simulator.
+
+
+2. Learn SAC policy using fknet to transform the observation space
+
+
+        python3 learn.py -env ReacherFK4aSR -alg SAC [-seed <n>] -fknet fknet_AbsReacher.pth -learn_steps 300000
+
+
+Results here are much better!
+
+3. Learn SAC policy in Reacher using policy in AbsReacher for reward shaping
+
+        python3 learn.py -env ReacherMod6vSRRS -alg SAC [-seed <n>] -shaper <AbsReacher SAC model> -learn_steps 300000 
 
 

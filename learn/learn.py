@@ -5,13 +5,16 @@ import functools
 import numpy as np
 import torch
 
-from stable_baselines3 import PPO, SAC, A2C
+from stable_baselines3 import PPO, SAC, A2C, TD3
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import DummyVecEnv
 from stable_baselines3.common.vec_env.vec_monitor import VecMonitor
 from stable_baselines3.common.evaluation import evaluate_policy
 
+#print(sys.path)
+#sys.path.insert(0, '../Gymnasium' )
+#print(sys.path)
 
 import gymnasium as gym
 
@@ -63,7 +66,10 @@ def create_model(alg, env, seed=None, fknet=None):
             tensorboard_log=log_dir,
             verbose=0)
     elif alg=="SAC":
-        model = SAC("MlpPolicy", env,  gradient_steps=2, seed=seed,
+        model = SAC("MlpPolicy", env, seed=seed, gradient_steps=4, 
+            verbose=0, tensorboard_log=log_dir)
+    elif alg=="TD3":
+        model = TD3("MlpPolicy", env,  seed=seed,
             verbose=0, tensorboard_log=log_dir)
     else:
         assert False, f"Unknown algorithm {alg}"
@@ -86,6 +92,10 @@ def load_model(alg, env, seed=None, fknet=None):
         model = SAC.load(model_file, env)
         rb_file = model_file[0:-4]+"_rb.pth"
         model.load_replay_buffer(rb_file)
+    elif alg=="TD3":
+        model = TD3.load(model_file, env)
+        rb_file = model_file[0:-4]+"_rb.pth"
+        model.load_replay_buffer(rb_file)
     else:
         assert False, f"Unknown algorithm {alg}"
 
@@ -96,10 +106,16 @@ def load_model(alg, env, seed=None, fknet=None):
 
 
 
-def play(env_name, alg, seed, n=5, fknet_file=None):
+def play(env_name, alg, seed, n=5, fknet_file=None, render=True):
 
-    env = gym.make(env_name, render_mode="human")
+    if render:
+        render_mode="human"
+    else:
+        render_mode= None
 
+    env = gym.make(env_name, render_mode=render_mode)
+
+    fknet = None
     if fknet_file != None:
         fknet = FKNet(n_in=2, n_out=2)
         fknet.load(fknet_file)
@@ -108,26 +124,68 @@ def play(env_name, alg, seed, n=5, fknet_file=None):
 
     model = load_model(alg, env, seed, fknet)
 
+    goals = 0
+    cnt_ep = 0
+    sum_epreward = 0
+    sum2_epreward = 0
     for i in range(n):
-        obs,info = env.reset()
-        cr = 0
-        cg = 1
-        done = False
-        while not done:
-            action, _state = model.predict(obs)
-            obs, reward, term, trunc, info = env.step(action)
-            cr += cg * reward
-            cg *= model.gamma
-            env.render()
-            done = term or trunc
-            if done:
-                print(obs)
-                print(info)
-                p = env.unwrapped.get_body_com("fingertip") - env.unwrapped.get_body_com("target")
-                d = np.linalg.norm(p)
-                v = env.unwrapped.data.qvel.flat[:2]
-                v2 = np.linalg.norm(v)
-                print(f"d {d:.3f} v {v2:.3f} - episode reward {cr:.3f}")
+        print(f"-------------- {i}/{n} -----------------")
+        try:
+            obs,info = env.reset()
+            cr = 0
+            cg = 1
+            done = False
+            while not done:
+                action, _state = model.predict(obs)
+                obs, reward, term, trunc, info = env.step(action)
+                cr += cg * reward
+                #cg *= model.gamma
+                if render:
+                    env.render()
+                    time.sleep(0.05)
+                done = term or trunc
+                if done:
+                    print(f"obs {vstr(obs)}")
+                    print(info)
+                    goals += info['reward_goal']
+                    sum_epreward += cr
+                    sum2_epreward += cr * cr
+                    cnt_ep += 1
+                    try:
+                        # Reacher
+                        p = env.unwrapped.get_body_com("fingertip") - env.unwrapped.get_body_com("target")
+                        d = np.linalg.norm(p)
+                        v = env.unwrapped.data.qvel.flat[:2]
+                        v2 = np.linalg.norm(v)
+                        print(f"d {d:.3f} v {v2:.3f} - episode reward {cr:.3f}")
+                    except:
+                        pass
+
+                    try:
+                        # Pusher
+                        vec_1 = env.unwrapped.get_body_com("object") - env.unwrapped.get_body_com("tips_arm")
+                        vec_2 = env.unwrapped.get_body_com("object") - env.unwrapped.get_body_com("goal")
+                        vel = env.unwrapped.data.qvel.flat[:7]
+                        d1 = np.linalg.norm(vec_1)
+                        d2 = np.linalg.norm(vec_2)
+                        v = np.linalg.norm(vel)
+
+                        print(f"d1 {d1:.3f} d2 {d2:.3f} v {v:.3f} - episode reward {cr:.3f}")
+                    except Exception as e:
+                        #print(e)
+                        pass
+        except KeyboardInterrupt:
+            print("User quit!")
+            break
+
+    mean_reward = sum_epreward/cnt_ep
+    std_reward = math.sqrt(sum2_epreward/cnt_ep - math.pow(mean_reward,2))
+
+    print(f"Learning timesteps = {model.num_timesteps}")
+
+    print(f"mean_reward = {mean_reward:.2f} +/- {std_reward:.2f}")
+
+    print(f"Success rate: {int(goals)}/{cnt_ep} = {goals/n*100:.1f}%")
 
     env.close()
 
@@ -136,6 +194,7 @@ def eval_policy(env_name, alg, seed, n=100, fknet_file=None):
 
     env = gym.make(env_name)
 
+    fknet = None
     if fknet_file != None:
         fknet = FKNet(n_in=2, n_out=2)
         fknet.load(fknet_file)
@@ -164,7 +223,7 @@ def make_env(env_name,fknet):
         env.set_fknet(fknet)
     return env
 
-def learn(env_name, alg, learn_steps=1e6, seed=None, fknet_file=None):
+def learn(env_name, alg, learn_steps=1e6, seed=None, fknet_file=None, shaper_file=None):
 
     fknet = None
     if fknet_file != None:
@@ -172,12 +231,23 @@ def learn(env_name, alg, learn_steps=1e6, seed=None, fknet_file=None):
         fknet.load(fknet_file)
         print(f"Loaded FKnet {fknet_file}")
 
-    vec_env = make_vec_env(functools.partial(make_env,env_name=env_name,fknet=fknet), n_envs=32)
+    shaper = None
+    if shaper_file != None:
+        shaper_model = SAC.load(shaper_file, None)
+        shaper = shaper_model.policy.critic
+        print(f"Loaded reward shaper {shaper_file}")
+
+    num_envs = 32
+    if alg == 'TD3':
+        num_envs = 1
+
+    vec_env = make_vec_env(functools.partial(make_env,env_name=env_name,fknet=fknet), n_envs=num_envs)
     print("----------------------------")
     print(f"Obs: {vec_env.observation_space}   Act: {vec_env.action_space}")
 
     obs = vec_env.reset()
     print(f"Observation shape: {obs.shape}")
+
 
     log_dir, log_name, model_file, lock_file = get_names(alg, vec_env, seed, fknet)
 
@@ -188,9 +258,6 @@ def learn(env_name, alg, learn_steps=1e6, seed=None, fknet_file=None):
         print(f"Lock found {lock_file}")
         sys.exit(1)
 
-
-    lockf = open(lock_file, 'w')
-    lockf.close()
 
     try:
         model = load_model(alg, vec_env, seed, fknet)
@@ -206,12 +273,20 @@ def learn(env_name, alg, learn_steps=1e6, seed=None, fknet_file=None):
     print(f"Trainable parameters {train_nparams}")
     print("----------------------------")
 
+    # setting fknet and shaper
+
     if fknet != None:
         for env in vec_env.envs:
             env.set_fknet(fknet)
 
+    if shaper != None:
+        for env in vec_env.envs:
+            env.set_shaper(shaper)
 
     print(f"Learning timesteps = {model.num_timesteps}")
+
+    lockf = open(lock_file, 'w')
+    lockf.close()
 
     try:
         print(f"Training model {model_file} ...")
@@ -231,10 +306,11 @@ def learn(env_name, alg, learn_steps=1e6, seed=None, fknet_file=None):
 
     # save and load
     model.save(model_file)
-    if type(model)==SAC:
+    if type(model)==SAC or type(model)==TD3:
         rb_file = model_file[0:-4]+"_rb.pth"
         model.save_replay_buffer(rb_file)
     print(f"Model saved on file {model_file}")
+
     vec_env.close()
 
     os.remove(lock_file)
@@ -254,6 +330,8 @@ if __name__ == '__main__':
         help="Random seed (default: None)")
     parser.add_argument("-fknet", type=str, default=None,
         help="FKNet model (default: None)")
+    parser.add_argument("-shaper", type=str, default=None,
+        help="Reward shaping (value net of a policy) (default: None)")
     parser.add_argument('--play', default = False, action ='store_true',
         help='Play one episode from saved model')
     parser.add_argument('--eval', default = False, action ='store_true',
@@ -263,8 +341,11 @@ if __name__ == '__main__':
     print(args)
 
     if args.play:
-        play(args.env, args.alg, args.seed, n=10, fknet_file=args.fknet)
+        play(args.env, args.alg, args.seed, n=10, fknet_file=args.fknet, render=True)
     elif args.eval:
-        eval_policy(args.env, args.alg, args.seed, n=100, fknet_file=args.fknet)
+        play(args.env, args.alg, args.seed, n=100, fknet_file=args.fknet, render=False)
     else:
-        learn(args.env, args.alg, args.learn_steps, args.seed, args.fknet)
+        learn(args.env, args.alg, args.learn_steps, args.seed, args.fknet, args.shaper)
+
+
+

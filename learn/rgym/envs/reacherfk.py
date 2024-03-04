@@ -79,13 +79,14 @@ class ReacherFK(gym.Wrapper):
             options: Optional[dict] = None,
         ):
         obs, info = super().reset(seed=seed)
+        self.current_observation = obs
         a,b = self.env.reset()
         x0 = self.unwrapped.data.qpos.flat[0:2]
         t = self.unwrapped.get_body_com("target")[0:2]
         #x0 = obs[0:2]
         #t = obs[2:4]
         self.xgoal = norm_pi(self.fknet.inverse(x0, t, tol=0.01, min_grad=1e-5, iters=1000, verbose=0).detach().numpy())
-        print(f" -- reset | t {vstr(t)} | xgoal {vstr(self.xgoal)}")
+        # print(f" -- reset | t {vstr(t)} | xgoal {vstr(self.xgoal)}")
         return self.get_observation(),info
 
     def step(
@@ -122,6 +123,24 @@ class ReacherFK4a(gym.ObservationWrapper):
             ] )
 
 
+
+class ReacherFK15(gym.ObservationWrapper):
+
+    def __init__(self, env: gym.Env[ObsType, ActType]):
+        """Constructor for the observation wrapper."""
+        gym.Wrapper.__init__(self, env)
+        self.observation_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(15,), dtype=np.float64)
+
+    def observation(self, observation: ObsType) -> WrapperObsType:
+        a = norm_pi(self.unwrapped.data.qpos.flat[0:2]-self.xgoal[0:2])   # angle diff
+        return np.concatenate(
+            [
+                observation,
+                a,                                      # joint angle diff
+                self.unwrapped.data.qvel.flat[:2]       # joint ang vel
+            ] )
+
+
 from rgym.envs.reachermod import ReacherModSR
 
 from gymnasium.envs.registration import register
@@ -133,8 +152,20 @@ def reacherfk4a(**args):
     env = ReacherModSR(env)
     return env
 
+def reacherfk15(**args):
+    env = gym.make("Reacher-v4b", **args)
+    env = ReacherFK(env)
+    env = ReacherFK15(env)
+    env = ReacherModSR(env)
+    return env
 
 register(
      id="ReacherFK4aSR",
      entry_point="rgym.envs.reacherfk:reacherfk4a",
 )
+
+register(
+     id="ReacherFK15SR",
+     entry_point="rgym.envs.reacherfk:reacherfk15",
+)
+

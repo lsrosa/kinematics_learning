@@ -11,17 +11,34 @@ from stable_baselines3.common.env_util import make_vec_env
 
 from networks import *
 
-env_name = 'AbsReacher6v'
 
-fknet_file = "fknet_AbsReacher.pth"
-num_envs = 100
+def get_info(env_name):
+    fknet_file = None
+    n_joints = 0
+    n_out = 0
+    if env_name[0:10] == 'AbsReacher':
+        fknet_file = "fknet_AbsReacher.pth"
+        n_joints = 2
+        n_out = 2 # output dimension
+    if env_name[0:6] == 'Pusher':
+        fknet_file = "fknet_Pushher.pth"
+        n_joints = 7
+        n_out = 3
+    else:
+        assert False, f"Env {env_name} not supported."
+    return  fknet_file, n_joints, n_out
 
 
-def learn(seed=2000, learn_steps=100000, random_steps=True):
+def learn(env_name, seed=2000, learn_steps=100000, random_steps=True):
 
+    fknet_file, n_joints, n_out = get_info(env_name)
+
+    num_envs = 100
     env = make_vec_env(env_name, n_envs=num_envs)
 
-    fknet = FKNet(n_in=2, n_out=2)
+    fknet_file = "fknet_Pusher.pth"
+
+    fknet = FKNet(n_in=n_joints, n_out=n_out)
     try:
         fknet.load(fknet_file)
         print(f"Loaded FKnet {fknet_file}")
@@ -40,7 +57,7 @@ def learn(seed=2000, learn_steps=100000, random_steps=True):
             istep = 0
             run = True
             while istep<learn_steps and run:
-                print(f"{istep:6d} | Training fknet with seed {current_seed} ...")
+                print(f"{istep:6d} | Training fknet on {env_name} with seed {current_seed} ...")
                 env.seed(seed=current_seed)
                 current_seed += num_envs
                 obs = env.reset()
@@ -79,13 +96,17 @@ def learn(seed=2000, learn_steps=100000, random_steps=True):
 
 def one_run(env, fknet, verbose=0):
 
-    tol = 0.05
+    tol = 0.075
 
     obs, _ = env.reset()
 
-    x0 = obs[0:2]
+    x0 = obs[0:fknet.n_in]
     x = x0
-    t = obs[2:4]
+    # Reacher
+    #t = obs[2:4]
+    # Pusher
+    t = obs[2*fknet.n_in+fknet.n_out:2*fknet.n_in+2*fknet.n_out]
+
 
     if verbose>0:
         print(f"x0 {vstr(x)} tt {vstr(t)}")
@@ -100,9 +121,15 @@ def one_run(env, fknet, verbose=0):
 
     for i in range(100):
 
-        x = obs[0:2]
-        v = obs[4:6]
-        y = env.unwrapped.get_body_com("fingertip")[0:2]
+        x = obs[0:fknet.n_in]
+
+        # Reacher
+        #v = obs[4:6]
+        #y = env.unwrapped.get_body_com("fingertip")[0:2]
+
+        # Pusher
+        v = obs[fknet.n_in:2*fknet.n_in]
+        y = env.unwrapped.get_body_com("tips_arm")
 
         y_pred = fknet.predict(x).detach().numpy()
 
@@ -130,14 +157,16 @@ def one_run(env, fknet, verbose=0):
         obs,_,_,_,_ = env.step(a)
 
     if not reached:
-        print(f"Failed | x0 {vstr(x0)} | t {vstr(t)} | ee {vstr(y)} | x {vstr(x)} | d {vstr(dy)} {vstr(np.linalg.norm(dy))} ")
+        print(f"Failed | x0 {vstr(x0)} | t {vstr(t)} | ee {vstr(y)} | x {vstr(x)} | d {vstr(dy)} -> {vstr(np.linalg.norm(dy))} ")
 
     return reached
 
 
-def test(render=False):
+def test(env_name, fknet_file, render=False):
 
-    fknet = FKNet(n_in=2, n_out=2)
+    _, n_joints, n_out = get_info(env_name)
+
+    fknet = FKNet(n_in=n_joints, n_out=n_out)
     try:
         fknet.load(fknet_file)
         print(f"Loaded FKnet {fknet_file}")
@@ -145,7 +174,7 @@ def test(render=False):
         print(e)
         return
 
-    env = gym.make("ReacherMod6v", render_mode="human" if render else None)
+    env = gym.make(env_name, render_mode="human" if render else None)
 
     one_run(env,fknet,verbose=1)
 
@@ -226,14 +255,16 @@ def test2(atarget=None, ttarget=None, astart=None, render=False, verbose=0):
 
 
 
-def eval_fknet(n=100):
+def eval_fknet(env_name, fknet_file, n=100):
 
-    env = gym.make("ReacherMod6vSR")
+    _, n_joints, n_out = get_info(env_name)
+
+    env = gym.make(env_name)
 
     # env = gym.make("ReacherMod6vSRFT")
     # env.set_fixed_target([0.0303, -0.1172])
 
-    fknet = FKNet(n_in=2, n_out=2)
+    fknet = FKNet(n_in=n_joints, n_out=n_out)
     try:
         fknet.load(fknet_file)
         print(f"Loaded FKnet {fknet_file}")
@@ -241,7 +272,7 @@ def eval_fknet(n=100):
         print(e)
         return
 
-    print(f"Evaluating FKNet for {n} episodes")
+    print(f"Evaluating FKNet {fknet_file} for {n} episodes")
     r = 0
     try:
         for i in tqdm(range(n)):
@@ -257,6 +288,10 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
 
+    parser.add_argument('-env', type=str, default = 'AbsReacher6v',
+        help='Env name')
+    parser.add_argument("-fknet", type=str, default=None,
+        help="FKNet model (default: None)")
     parser.add_argument('--test', default = False, action ='store_true',
         help='Test target')
     parser.add_argument('-astart', type=float, nargs=2, default = None,
@@ -273,11 +308,11 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.test:
-        test(args.render)
+        test(args.env,args.fknet,args.render)
     elif args.atarget is not None or args.ttarget is not None:
         test2(atarget=args.atarget, ttarget=args.ttarget, astart=args.astart, render=args.render)
     elif args.eval is not None:
-        eval_fknet(args.eval)
+        eval_fknet(args.env,args.fknet,args.eval)
     else:
-        learn(seed=2000, learn_steps=100000)
+        learn(args.env,seed=2000, learn_steps=100000)
 

@@ -305,7 +305,7 @@ class ModelLearnCB(BaseCallback):
 
             for env in self.env.envs:
                 obs = env.unwrapped.get_observation()  # using wrappers
-                rew, info = env.unwrapped.get_reward()
+                #rew, info = env.unwrapped.get_reward()
                 
                 #print(obs)
                 #print(rew)
@@ -313,6 +313,10 @@ class ModelLearnCB(BaseCallback):
 
                 if env.spec.id[0:10] == 'AbsReacher':
                     y = env.unwrapped.xpos
+                    self.fkdata.add((obs[0],obs[1],y[0],y[1]))
+                elif env.spec.id[0:6] == 'Pusher':
+                    y = env.unwrapped.get_body_com("tips_arm")
+                    self.fkdata.add((obs[0],obs[1],obs[2],obs[3],obs[4],obs[5],obs[6],y[0],y[1],y[2]))
                 #elif env.spec.id[0:7] == 'Reacher':
                 #    TODO 
                 else:
@@ -320,7 +324,7 @@ class ModelLearnCB(BaseCallback):
 
                 # print(f"fkdata {obs} {y}")
 
-                self.fkdata.add((obs[0],obs[1],y[0],y[1]))
+                
 
         return not self.user_quit[0]
 

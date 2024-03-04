@@ -7,6 +7,8 @@ import gymnasium as gym
 from gymnasium import Env, spaces, utils
 from gymnasium.wrappers import FrameStack
 
+from networks import vstr
+
 def norm_pi(a):   # [-PI, PI)
     if type(a)==list:
         for i,ai in enumerate(a):
@@ -195,8 +197,8 @@ class AbsReacher(gym.Env):
 
     def render(self):
         rew, info = self.get_reward()
-        dist = info['dist']
-        print(f"J {self.j[0]:6.3f} {self.j[1]:6.3f} | T ({self.t[0]:6.3f} {self.t[1]:6.3f}) {self.tpos[0]:6.3f} {self.tpos[1]:6.3f} | d ({dist:6.3f}) | A {self.action[0]:6.3f} {self.action[1]:6.3f} | v {self.v[0]:6.3f} {self.v[1]:6.3f} | rew: {rew:8.3f}")
+        dist = info['reward_dist']
+        print(f"J {self.j[0]:6.3f} {self.j[1]:6.3f} | EE {vstr(self.xpos)} | T {self.tpos[0]:6.3f} {self.tpos[1]:6.3f} ({self.t[0]:6.3f} {self.t[1]:6.3f}) | d ({dist:6.3f}) | A {self.action[0]:6.3f} {self.action[1]:6.3f} | v {self.v[0]:6.3f} {self.v[1]:6.3f} | rew: {rew:8.3f}")
         return
 
     def close(self):

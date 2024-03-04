@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, SupportsFloat, Any, TypeVar
 from gymnasium.core import ActType, ObsType, WrapperObsType
 from gymnasium.spaces import Box
 from gymnasium.wrappers import FrameStack
-from gymnasium import RewardWrapper
+from gymnasium import RewardWrapper, ObservationWrapper
 
 from rgym.envs.reacher_v4 import ReacherEnv
 
@@ -87,7 +87,7 @@ class ReacherMod(gym.Wrapper):
         return self.current_reward, self.current_info
 
 
-class ReacherMod2(gym.ObservationWrapper):
+class ReacherMod2(ObservationWrapper):
 
     def __init__(self, env: gym.Env[ObsType, ActType]):
         """Constructor for the observation wrapper."""
@@ -102,7 +102,7 @@ class ReacherMod2(gym.ObservationWrapper):
             ] )
 
 
-class ReacherMod4(gym.ObservationWrapper):
+class ReacherMod4(ObservationWrapper):
 
     def __init__(self, env: gym.Env[ObsType, ActType]):
         """Constructor for the observation wrapper."""
@@ -121,7 +121,7 @@ class ReacherMod4(gym.ObservationWrapper):
 
 
 
-class ReacherMod6v(gym.ObservationWrapper):
+class ReacherMod6v(ObservationWrapper):
 
     def __init__(self, env: gym.Env[ObsType, ActType]):
         """Constructor for the observation wrapper."""
@@ -138,7 +138,7 @@ class ReacherMod6v(gym.ObservationWrapper):
             ] )
 
 
-class ReacherMod6d(gym.ObservationWrapper):
+class ReacherMod6d(ObservationWrapper):
 
     def __init__(self, env: gym.Env[ObsType, ActType]):
         """Constructor for the observation wrapper."""
@@ -158,7 +158,7 @@ class ReacherMod6d(gym.ObservationWrapper):
 
 
 
-class ReacherMod4d(gym.ObservationWrapper):
+class ReacherMod4d(ObservationWrapper):
 
     def __init__(self, env: gym.Env[ObsType, ActType]):
         """Constructor for the observation wrapper."""
@@ -177,7 +177,7 @@ class ReacherMod4d(gym.ObservationWrapper):
             ] )
 
 
-class ReacherMod6a(gym.ObservationWrapper):
+class ReacherMod6a(ObservationWrapper):
 
     def __init__(self, env: gym.Env[ObsType, ActType]):
         """Constructor for the observation wrapper."""
@@ -195,7 +195,7 @@ class ReacherMod6a(gym.ObservationWrapper):
             ] )
 
 
-class ReacherMod4a(gym.ObservationWrapper):
+class ReacherMod4a(ObservationWrapper):
 
     def __init__(self, env: gym.Env[ObsType, ActType]):
         """Constructor for the observation wrapper."""
@@ -215,7 +215,7 @@ class ReacherMod4a(gym.ObservationWrapper):
             ] )
 
 
-class ReacherMod8(gym.ObservationWrapper):
+class ReacherMod8(ObservationWrapper):
 
     def __init__(self, env: gym.Env[ObsType, ActType]):
         """Constructor for the observation wrapper."""
@@ -334,6 +334,49 @@ class ReacherModA1(gym.Wrapper):
 
 
 
+class ReacherRewardShape(gym.Wrapper):
+
+    def __init__(self, env, policy=None, shaper=None):
+        super().__init__(env)
+        self.policy = policy
+        self.gamma = 0.99
+        self.shaper = shaper
+        self.prev_obs = None
+        self.act0 = torch.zeros(env.action_space.shape).type(torch.float32).view(1,-1)
+
+
+    def set_shaper(self, shaper):
+        self.shaper = shaper
+
+    def reset(self, **kwargs):
+        obs,info = super().reset(**kwargs)
+        self.prev_obs = self.observation(obs) # apply observation wrapper
+        return obs,info
+
+    def step(self, action):
+        next_obs, reward, terminated, truncated, info = self.env.step(action)
+        reward = self.reward(self.prev_obs,next_obs,action,reward,info)
+        self.prev_obs = next_obs
+        return next_obs, reward, terminated, truncated, info
+
+    def reward(self, prev_obs, next_obs, action, reward, info):
+        if self.shaper != None:
+            o0 = torch.tensor(prev_obs).type(torch.float32).view(1,-1)
+            o1 = torch.tensor(next_obs).type(torch.float32).view(1,-1)
+
+            v0 = self.shaper.forward(o0, self.act0)
+            v1 = self.shaper.forward(o1, self.act0)
+
+            v0 = float(v0[0])  # take values from 1st net (???)
+            v1 = float(v1[0])
+
+            rs = reward + (v1 - self.gamma * v0)
+        else:
+            print("Warning: shaper not provided!!!")
+            rs = reward
+        return rs
+
+
 
 
 from gymnasium.envs.registration import register
@@ -371,6 +414,13 @@ def reachermod6vsr(**args):
     env = gym.make("Reacher-v4b", **args)
     env = ReacherMod6v(env)
     env = ReacherModSR(env)
+    return env
+
+def reachermod6vsrrs(**args):
+    env = gym.make("Reacher-v4b", **args)
+    env = ReacherMod6v(env)
+    env = ReacherModSR(env)
+    env = ReacherRewardShape(env)
     return env
 
 def reachermod6vsrft(**args):
@@ -434,6 +484,9 @@ register(
      max_episode_steps=50,
 )
 
+
+
+
 register(
      id="ReacherMod2",
      entry_point="rgym.envs.reachermod:reachermod2",
@@ -462,6 +515,11 @@ register(
 register(
      id="ReacherMod6vSR",
      entry_point="rgym.envs.reachermod:reachermod6vsr",
+)
+
+register(
+     id="ReacherMod6vSRRS",
+     entry_point="rgym.envs.reachermod:reachermod6vsrrs",
 )
 
 register(
