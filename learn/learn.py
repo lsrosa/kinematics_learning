@@ -215,7 +215,7 @@ def eval_policy(env_name, alg, seed, n=100, fknet_file=None):
 
     env.close()
 
-
+import fknet_learn
 
 def make_env(env_name,fknet):
     env = gym.make(env_name)
@@ -227,7 +227,8 @@ def learn(env_name, alg, learn_steps=1e6, seed=None, fknet_file=None, shaper_fil
 
     fknet = None
     if fknet_file != None:
-        fknet = FKNet(n_in=2, n_out=2)
+        _, n_joints, n_out = fknet_learn.get_info(env_name)
+        fknet = FKNet(n_in=n_joints, n_out=n_out)
         fknet.load(fknet_file)
         print(f"Loaded FKnet {fknet_file}")
 

@@ -29,9 +29,12 @@ def get_info(env_name):
     return  fknet_file, n_joints, n_out
 
 
-def learn(env_name, seed=2000, learn_steps=100000, random_steps=True):
+def learn(env_name, fknet_file=None, seed=2000, learn_steps=100000, random_steps=True):
 
-    fknet_file, n_joints, n_out = get_info(env_name)
+    fknet_file_get_info, n_joints, n_out = get_info(env_name)
+
+    if fknet_file==None:
+        fknet_file = fknet_file_get_info
 
     num_envs = 100
     env = make_vec_env(env_name, n_envs=num_envs)
@@ -96,7 +99,6 @@ def learn(env_name, seed=2000, learn_steps=100000, random_steps=True):
 
 def one_run(env, fknet, verbose=0):
 
-    tol = 0.075
 
     obs, _ = env.reset()
 
@@ -104,14 +106,16 @@ def one_run(env, fknet, verbose=0):
     x = x0
     # Reacher
     #t = obs[2:4]
+    #tol = 0.075
     # Pusher
     t = obs[2*fknet.n_in+fknet.n_out:2*fknet.n_in+2*fknet.n_out]
+    tol = 0.1
 
 
     if verbose>0:
         print(f"x0 {vstr(x)} tt {vstr(t)}")
 
-    xt = fknet.inverse(x,t,tol=tol*0.9,iters=30000)
+    xt = fknet.inverse(x,t,tol=tol*0.9,iters=100000)
     tt = fknet.forward(xt).detach().numpy()
     xt = xt.detach().numpy()
     d = np.linalg.norm(t-tt)
@@ -139,7 +143,6 @@ def one_run(env, fknet, verbose=0):
         dx = x - xt
 
         g = fknet.derivative(x,dy)
-        #xt = fknet.inverse(x,t)
 
         k1 = 5
         vdes = - k1 * dx
@@ -314,5 +317,5 @@ if __name__ == '__main__':
     elif args.eval is not None:
         eval_fknet(args.env,args.fknet,args.eval)
     else:
-        learn(args.env,seed=2000, learn_steps=100000)
+        learn(args.env, args.fknet, seed=2000, learn_steps=100000)
 
