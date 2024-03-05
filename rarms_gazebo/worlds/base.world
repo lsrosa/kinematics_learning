@@ -37,6 +37,31 @@
       <static>true</static>
     </model>
 
+
+
+  <model name="target">
+    <pose>0.04 0.04 0.00 0 0 0</pose>
+    <static>true</static>
+    <link name="box">
+      <pose>0.0 0.0 0.0 0 0 0</pose>
+      <visual name="visual">
+        <geometry>
+          <cylinder>
+            <radius>0.02</radius>
+            <length>0.001</length>
+          </cylinder>
+        </geometry>
+        <material>
+          <script>
+            <uri>file://media/materials/scripts/gazebo.material</uri>
+            <name>Gazebo/Green </name>
+          </script>
+        </material>
+      </visual>
+    </link>
+    
+  </model>
+  
     <!-- die to roll -->
     <model name="die">
       <include>

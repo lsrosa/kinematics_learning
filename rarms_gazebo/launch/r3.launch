@@ -13,7 +13,7 @@
   <arg name="gui" default="true" doc="Starts Gazebo gui" />
 
   <!-- controller parameters -->
-  <arg name="controller" default="joint_group_position_controller" doc="Arm controller to use (joint_group_position_controller, joint_group_effort_controller, joint_trajectory_controller)" />
+  <arg name="controller" default="joint_group_effort_controller" doc="Arm controller to use (joint_group_position_controller, joint_group_effort_controller, joint_trajectory_controller)" />
 
   <!-- Launch empty Gazebo world (notice the world_name arg if the above world_file is loaded) -->
   <include file="$(find gazebo_ros)/launch/empty_world.launch">

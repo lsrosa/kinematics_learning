@@ -453,8 +453,6 @@
 
 
     <!-- fixed joint link_4 - link_ee -->
-    <!--
-
     <xacro:include filename="$(find rarms_gazebo)/urdf/hand.xacro" />
 
     <joint name="joint_f4" type="fixed">
@@ -466,12 +464,11 @@
         <disableFixedJointLumping>true</disableFixedJointLumping> 
         <preserveFixedJoint>true</preserveFixedJoint>
     </gazebo>  
-    -->
-
-    <xacro:include filename="$(find rarms_gazebo)/urdf/hand2.xacro" />
-
 
     <!-- fixed joint link_4 - EE_gripper -->
+<!--
+    <xacro:include filename="$(find rarms_gazebo)/urdf/hand2.xacro" />
+    
     <joint name="joint_f4" type="fixed">
         <origin xyz="${0.0} ${length_EE_1/2} ${length_4+base_EE_1/2}" rpy="${M_PI/2} ${M_PI/2} 0.0"/>
         <parent link="link_4"/>
@@ -481,12 +478,11 @@
         <disableFixedJointLumping>true</disableFixedJointLumping> 
         <preserveFixedJoint>true</preserveFixedJoint>
     </gazebo>
-
+-->
  
 <!-- self collision -->
 
 
-<!--
      <xacro:gazebo_self_collision link_name="base_link"/>
      <xacro:gazebo_self_collision link_name="link_1"/>
      <xacro:gazebo_self_collision link_name="link_2"/>
@@ -498,7 +494,6 @@
      <xacro:gazebo_self_collision link_name="EE_part_1"/>
      <xacro:gazebo_self_collision link_name="EE_part_21"/>
      <xacro:gazebo_self_collision link_name="EE_part_22"/>
--->
 
 <!-- ========================================================================= -->
 
