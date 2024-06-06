@@ -1,0 +1,6 @@
+models/
+plots/
+tunning/
+compare/
+policy/
+*.pt

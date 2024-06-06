@@ -18,7 +18,7 @@ import gymnasium as gym
 from stable_baselines3.common.callbacks import BaseCallback
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
-
+device = 'cpu'
 
 DEBUG=0
 
