@@ -1,0 +1,31 @@
+\section{Related Works}\label{sec: related works}
+
+\cite{nguyen1990neural} probably the first proposal of learning forward kinematics with \gls{nn}. Uses a monolithic network and a planar 2-link robotic arm.
+
+\cite{gribovskaya2011learning} proposes to learn forward kinematics as a monolithic \gls{gmm} model. They test on a real robot with \rev{3?}-\gls{dof}.
+
+\cite{damas2012online} proposed to learn the forward and inverse kinematics together for parallel robots. The approach uses a monolithic model, which is learned online using a \gls{lwpr}.
+
+\cite{morell2013solving} proposes to solve the forward kinematics using \gls{svr}.
+
+\cite{gu2017deep} proposes to learn a policy with deep-Q learning. They use simulation and robot farms. (fells like I`ve the images of this paper in another paper. double check)
+
+\cite{kubus2018learning} presents as analysis on sample efficiency for learning the forward kinematics of linked robots. Using tailored parameterized models is efficient, other methods are not sample efficient. They focus on Fourier-Domain representations.
+
+\cite{theofanidis2018kinematic} solves the forward kinematics of a 6-\gls{dof} serial manipulator using a monolithic \gls{nn}.
+
+\cite{grassmann2019merits} study the influence of joint-position representations on learning forward kinematics with a monolithic \gls{nn} for a 6-\gls{dof} robotic arm and a cylindrical robot. They test \texttt{Euler angles}, \texttt{vectorial}, \texttt{quaternions}, and \texttt{angle-axis} representation. Results favor quaternion representation.
+
+\cite{ren2020learning} proposes learning the inverse kinematics and the dynamics model of serial robot manipulators using \glspl{gan}.
+
+\cite{loutfi2020learning} evaluates different function approximators for learning monolithic forward kinematic models. \glspl{nn} perform the best.
+
+\cite{kesaba2022transfer} uses a monolithic \gls{nn} for learning forward kinematics for a 6-\gls{dof} robot manipulator in simulation. The learned model is transferred to a real robot \rev{using the same training signals}. Results show that the real robot achieves higher accuracy.
+
+\cite{kesaba2022forward} seems to be the same as \cite{kesaba2022transfer}.
+
+\cite{sharkawy2022forward} uses a monolithic \gls{nn} for learning forward and inverse kinematics of a 5-\gls{dof} robotic arm \rev{check it out it seems they do it for 2 DoFs}. 
+
+\cite{valayil2022methods} basically lists methods for solving forward kinematics. \rev{does not really add anything}
+
+\cite{sharkawy2023forward} uses a monolithic \gls{nn} for learning forward kinematics of a 3-\gls{dof} robotic arm. 

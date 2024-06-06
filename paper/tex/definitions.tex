@@ -1,0 +1,30 @@
+\graphicspath{{figures}}
+
+\newcommand{\rev}[1]{\color{red}(#1)\color{black}}
+
+%%%% Robot
+\newcommand{\joint}[1]{\mathrm{J}_{#1}}
+\newcommand{\rotAngle}[1]{q_{#1}}
+\newcommand{\nJoints}{j}
+\newcommand{\nDims}{n}
+
+% Network
+\newcommand{\prediction}[1]{\tilde{#1}}
+\newcommand{\nn}{\Phi}
+\newcommand{\nnMono}{\nn^{m}}
+\newcommand{\nnLink}{\nn^{l}}
+\newcommand{\loss}{\mathcal{L}}
+\newcommand{\lossMono}{\loss^{m}}
+\newcommand{\lossLink}{\loss^{l}}
+\newcommand{\lossLinkCart}{\loss^{l,cart}}
+\newcommand{\lossLinkDet}{\loss^{l,det}}
+\newcommand{\lossLinkInv}{\loss^{l,inv}}
+\newcommand{\predMono}{\prediction{\vector{x}}^{m}}
+\newcommand{\predLink}{\prediction{\vector{x}}^{l}}
+
+% General math
+\newcommand{\realSet}[1]{\mathbb{R}^{#1}}
+\renewcommand{\matrix}[1]{\mathrm{\mathbf{#1}}}
+\renewcommand{\vector}[1]{\mathrm{\mathbf{#1}}}
+
+% Training

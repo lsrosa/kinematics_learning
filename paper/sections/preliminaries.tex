@@ -1,0 +1,50 @@
+\section{Preliminaries}\label{sec: preliminaries}
+
+Consider the serial robot manipulator illustrated in Figure \ref{fig: serial manipulator} with $\nJoints$ links and $\nJoints+1$ joints. 
+%
+The reference frames of the world and of $\joint{0}$ are fixed and coincide.
+
+\begin{figure}
+	\centering
+	\includegraphics[width=0.8\linewidth]{serial_manipulator.pdf}
+	\caption{A serial manipulator with $\nJoints$ axes and $\nJoints+1$ joints $\joint{i}$. Each axis is connected by a joint which is associated with a Cartesian reference frame (red, gree, blue) and can rotate over an arbitrary axis (purple).
+	%
+	We consider, without loss of generality, the position of $\joint{0}$ fixed at the world origin, and $\joint{\nJoints}$ to be the end-effector, which does not rotate.
+	%
+	The Cartesian position of joint $\joint{i}|i \in\{1,\hdots,\nJoints\}$ ($\vector{x}_i$) in the reference frame of $\joint{i_1}$ depends only on $\rotAngle{i-1}$.
+	}
+	\label{fig: serial manipulator}
+\end{figure}
+
+Our task is to estimate the Cartesian position of each joint $\joint{i}|i\in\{1,\hdots,\nJoints\}$ in the world reference frame ($\vector{x}$) as a function of the rotation angles of $\joint{i}|i\in\{0,\hdots,\nJoints-1\}$ ($\rotAngle{i}|i\in\{0,\hdots,\nJoints-1\}$), as described in Equation \ref{eq: x estimate in function of q}.
+%
+The Cartesian pose of each joint $\joint{i}$ is a $d$ dimensional array (usually $\nDims=2, 3$), resulting in the estimation of $\nDims\times\nJoints$ functions in total.
+
+\begin{equation}\label{eq: x estimate in function of q}
+	\prediction{\vector{x}}(\vector{q}) = 
+	\left[
+	\begin{array}{cccc}
+		\prediction{\vector{x}}_1(\rotAngle{0}) & \prediction{\vector{x}}_2(\rotAngle{0}, \rotAngle{1}) & \hdots & \prediction{\vector{x}}_\nJoints(\rotAngle{0}, \hdots, \rotAngle{\nJoints-1})
+	\end{array}
+	\right]
+\end{equation}
+
+The function $\vector{x}(\vector{q})$ can be expressed using \gls{dh} transformation matrices \cite{kucuk2006robot}.
+%
+For a given $\joint{i}$, the a transformation between its reference frame and the one of $\joint{i-1}$ is described by \ref{eq: dl transformation matrix i-1 to i}, where $\matrix{T}$ and $\matrix{D}$ are the rotation and displacement matrices, respectively.
+
+\begin{equation}\label{eq: dl transformation matrix i-1 to i}
+	\matrix{T}_{i-1}^{i} = 
+	\left[
+	\begin{array}{cc}
+		\matrix{R}_{i-1}^{i}(\rotAngle{i-1}) & \matrix{D}_{i-1}^{i}(\rotAngle{i-1}) \\
+		\matrix{0}_{1\times3} & 1
+	\end{array}
+	\right]
+\end{equation}
+
+For a serial manipulator, the transformations can be chained for obtaining a transformation for any given joint $\joint{i}$ in the world reference frame, according to Equation \ref{eq: dl transformation matrix 0 to i}.
+
+\begin{equation}\label{eq: dl transformation matrix 0 to i}
+	\vector{x}_i = \displaystyle\prod_{k=1}^{i}\matrix{T}_{k-1}^{k}~|~i \in \{1, \hdots, j\}
+\end{equation}
