@@ -1,6 +1,10 @@
 <mujoco model="reacher">
+    <custom>
+        <numeric name="ndims" size="1" data="3"/>
+        <numeric name="njoints" size="1" data="3"/>
+    </custom>    
+
 	<compiler angle="radian" inertiafromgeom="true"/>
-    
     <default>
 		<joint armature="1" damping="1" limited="true"/>
 		<geom contype="0" friction="1 0.1 0.1" rgba="0.7 0.7 0 1"/>

@@ -7,16 +7,20 @@
       <geom contype="0" rgba="0.7 0.7 0 1" friction="1 0.1 0.1"/>
     </default>
   </default>
+  <custom>
+    <numeric name="ndims" size="1" data="3"/>
+    <numeric name="njoints" size="1" data="2"/>
+  </custom>
   <worldbody>
     <geom name="ground" class="/" type="plane" contype="0" conaffinity="0" size="1 1 10" rgba="0.9 0.9 0.9 1" pos="0 0 0"/>
     <geom name="root" class="/" type="cylinder" contype="0" conaffinity="0" size="0.011" rgba="0.9 0.4 0.6 1" fromto="0 0 0 0 0 0.02"/>
     <body name="base" pos="0 0 0.01">
-      <geom name="link0" class="/" type="capsule" size="0.01" rgba="0 0.4 0.6 1" fromto="0 0 0 0 0 0.03823"/>
+      <geom name="link0" class="/" type="capsule" size="0.01" rgba="0 0.4 0.6 1" fromto="0 0 0 0 0 0.2239"/>
       <joint name="j0" class="/" type="hinge" pos="0 0 0" axis="0 0 1" limited="true" range="-3 3"/>
-      <body name="j0" pos="0 0 0.03823">
+      <body name="j0" pos="0 0 0.2239">
         <joint name="j1" class="/" type="hinge" pos="0 0 0" axis="1 0 0" limited="true" range="-3 3"/>
-        <geom name="link1" class="/" type="capsule" size="0.01" rgba="0 0.4 0.6 1" fromto="0 0 0 0 0 0.4228"/>
-        <body name="j1" pos="0 0 0.4228">
+        <geom name="link1" class="/" type="capsule" size="0.01" rgba="0 0.4 0.6 1" fromto="0 0 0 0 0 0.4096"/>
+        <body name="j1" pos="0 0 0.4096">
           <geom name="fingertip" class="/" type="sphere" contype="0" size="0.01" rgba="0 0.8 0.6 1" pos="0 0 0"/>
         </body>
       </body>

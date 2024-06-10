@@ -161,7 +161,7 @@ if __name__ == '__main__':
     model_kwargs['lr'] = 1e-6#[1e-4, 1e-5, 1e-6, 1e-7]
     model_kwargs['n_hidden'] = 3#[2, 3, 4, 5]
     model_kwargs['size_hidden'] = 32#[8, 16, 32, 64]
-    model_kwargs['n_joints'] = 3#[2,3]
+    model_kwargs['n_joints'] = 2#[2,3]
     model_kwargs['n_dims'] = 2#[2,3]
     
     learn_kwargs = dict()

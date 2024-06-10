@@ -1,4 +1,9 @@
 <mujoco model="reacher">
+    <custom>
+        <numeric name="ndims" size="1" data="3"/>
+        <numeric name="njoints" size="1" data="7"/>
+    </custom>    
+
 	<compiler angle="radian" inertiafromgeom="true"/>
     
     <default>

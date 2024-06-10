@@ -34,18 +34,21 @@ class ExReacherEnv(MujocoEnv, utils.EzPickle):
         "render_fps": 50,
     }
 
-    def __init__(self, model_file=None, n_dims=2, n_joints=2, **kwargs):
-        self.n_dims = n_dims 
-        self.n_joints = n_joints 
-        
-        self.ee_link = self.n_joints-1
-
-        if model_file == None:
+    def __init__(self, **kwargs):
+        if 'model_file' in kwargs:
+            model_file = path(kwargs.pop('model_file')) 
+        else:
             model_file = path.cwd()/("rgym/envs/assets/default.xml")
+        print("loading custom reacher model: %s"%model_file)
         
+        # read the xml to get n_dims and n_joints
         model_xml = mjcf.from_path(model_file, escape_separators=True)
+        self.n_dims = int(model_xml.find('numeric', 'ndims').data[0])
+        self.n_joints = int(model_xml.find('numeric', 'njoints').data[0]) 
+        print(self.n_dims, self.n_joints)
+        self.ee_link = self.n_joints-1
+        
         model_file = model_file.as_posix()
-        #print("loading custom reacher model: %s"%model_file)
         
         self.qdot_max = 10
         '''
@@ -70,6 +73,7 @@ class ExReacherEnv(MujocoEnv, utils.EzPickle):
             default_camera_config=DEFAULT_CAMERA_CONFIG,
             **kwargs,
         )
+        exit()
         return
 
     def step(self, a):
@@ -148,5 +152,5 @@ def exreacherenv(**args):
 register(
      id="Ex-Reacher-v0",
      entry_point="rgym.envs.ex_reacher_v0:exreacherenv",
-     max_episode_steps=2,
+     max_episode_steps=50,
 )

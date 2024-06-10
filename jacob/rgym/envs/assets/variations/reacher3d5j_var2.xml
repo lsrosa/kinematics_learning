@@ -7,25 +7,29 @@
       <geom contype="0" rgba="0.7 0.7 0 1" friction="1 0.1 0.1"/>
     </default>
   </default>
+  <custom>
+    <numeric name="ndims" size="1" data="3"/>
+    <numeric name="njoints" size="1" data="5"/>
+  </custom>
   <worldbody>
     <geom name="ground" class="/" type="plane" contype="0" conaffinity="0" size="1 1 10" rgba="0.9 0.9 0.9 1" pos="0 0 0"/>
     <geom name="root" class="/" type="cylinder" contype="0" conaffinity="0" size="0.011" rgba="0.9 0.4 0.6 1" fromto="0 0 0 0 0 0.02"/>
     <body name="base" pos="0 0 0.01">
-      <geom name="link0" class="/" type="capsule" size="0.01" rgba="0 0.4 0.6 1" fromto="0 0 0 0 0 0.2233"/>
+      <geom name="link0" class="/" type="capsule" size="0.01" rgba="0 0.4 0.6 1" fromto="0 0 0 0 0 0.3322"/>
       <joint name="j0" class="/" type="hinge" pos="0 0 0" axis="0 0 1" limited="true" range="-3 3"/>
-      <body name="j0" pos="0 0 0.2233">
-        <geom name="link1" class="/" type="capsule" size="0.01" rgba="0 0.4 0.6 1" fromto="0 0 0 0 0 0.3045"/>
+      <body name="j0" pos="0 0 0.3322">
+        <geom name="link1" class="/" type="capsule" size="0.01" rgba="0 0.4 0.6 1" fromto="0 0 0 0 0 0.04754"/>
         <joint name="j1" class="/" type="hinge" pos="0 0 0" axis="1 0 0" limited="true" range="-3 3"/>
-        <body name="j1" pos="0 0 0.3045">
-          <geom name="link2" class="/" type="capsule" size="0.01" rgba="0 0.4 0.6 1" fromto="0 0 0 0 0 0.234"/>
+        <body name="j1" pos="0 0 0.04754">
+          <geom name="link2" class="/" type="capsule" size="0.01" rgba="0 0.4 0.6 1" fromto="0 0 0 0 0 0.1739"/>
           <joint name="j2" class="/" type="hinge" pos="0 0 0" axis="0 0 1" limited="true" range="-3 3"/>
-          <body name="j2" pos="0 0 0.234">
-            <geom name="link3" class="/" type="capsule" size="0.01" rgba="0 0.4 0.6 1" fromto="0 0 0 0 0 0.02219"/>
+          <body name="j2" pos="0 0 0.1739">
+            <geom name="link3" class="/" type="capsule" size="0.01" rgba="0 0.4 0.6 1" fromto="0 0 0 0 0 0.08089"/>
             <joint name="j3" class="/" type="hinge" pos="0 0 0" axis="1 0 0" limited="true" range="-3 3"/>
-            <body name="j3" pos="0 0 0.02219">
-              <geom name="link4" class="/" type="capsule" size="0.01" rgba="0 0.4 0.6 1" fromto="0 0 0 0 0 0.6961"/>
+            <body name="j3" pos="0 0 0.08089">
+              <geom name="link4" class="/" type="capsule" size="0.01" rgba="0 0.4 0.6 1" fromto="0 0 0 0 0 0.2803"/>
               <joint name="j4" class="/" type="hinge" pos="0 0 0" axis="0 1 0" limited="true" range="-3 3"/>
-              <body name="j4" pos="0 0 0.6961">
+              <body name="j4" pos="0 0 0.2803">
                 <geom name="fingertip" class="/" type="sphere" contype="0" size="0.01" rgba="0 0.8 0.6 1" pos="0 0 0"/>
               </body>
             </body>
