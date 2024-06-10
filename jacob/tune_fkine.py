@@ -30,9 +30,9 @@ if __name__ == '__main__':
     learn_kwargs['append'] = True
 
     for model in ['FKineLinked', 'FKineMono']:
-        for lr in [1e-4, 1e-5, 1e-6, 1e-7]:
-            for nh in [2, 3, 4, 5]:
-                for sh in [8, 16, 32, 64]:
+        for lr in [1e-4, 1e-5, 1e-6]:
+            for nh in [3, 4, 5]:
+                for sh in [8, 16, 32]:
                     for n_dims in [2, 3]:
                         for n_joints in [2, 3, 4, 5, 6, 7]:
                             model_kwargs = dict()
