@@ -12,6 +12,7 @@ from fkine.learn import learn
 # Utility stuff
 from matplotlib import pyplot as plt
 from utils import * 
+import pickle
 
 # check device
 if torch.cuda.is_available():
@@ -28,19 +29,19 @@ def test(models_dir, results_dir, plots_dir, model_kwargs, device):
     fkine_link_file = "/fkine_FKineLinked"+_suffix
     fkine_mono_file = "/fkine_FKineMono"+_suffix
    
-    n_dims  = model_kwargs['n_dims']  
-    n_joints = model_kwargs['n_joints']
-    env_kwargs={'n_dims':n_dims, 'n_joints':n_joints}
+    env_kwargs={'model_file':path.cwd()/('rgym/envs/assets/reacher%dd%dj.xml'%(model_kwargs['n_dims'], model_kwargs['n_joints']))}
     env = make_env(**env_kwargs)
+    n_dims = env.unwrapped.n_dims
+    n_joints = env.unwrapped.n_joints
     y, y_dot, q, q_dot = [], [], [], []
     obs = env.reset()[0]
     
     fkine_link_net = FKineLinked(**model_kwargs, device=device)
-    fkine_link_net.load_state_dict(torch.load(models_dir+fkine_link_file+".pt"))
+    fkine_link_net.load_state_dict(torch.load(models_dir+fkine_link_file+"run1.pt"))
     fkine_link_net.to(device)
     
     fkine_mono_net = FKineMono(**model_kwargs, device = device)
-    fkine_mono_net.load_state_dict(torch.load(models_dir+fkine_mono_file+".pt"))
+    fkine_mono_net.load_state_dict(torch.load(models_dir+fkine_mono_file+"run1.pt"))
     fkine_mono_net.to(device)
     
     for sample in range(100):
@@ -142,10 +143,10 @@ def test(models_dir, results_dir, plots_dir, model_kwargs, device):
     plt.savefig(plots_dir+'/fkine_predictions_xdot_%s.png'%_suffix, dpi=1200)
                                                        
     ## compare losses
-    with open(results_dir+fkine_file+'.pickle', 'rb') as h:
-        losses_link, duration = pickle.load(results_dir+fkine_link_file+".pickle")
-    with open(results_dir+fkine_file+'.pickle', 'rb') as h:
-        losses_mono, duration = pickle.load(results_dir+fkine_mono_file+".pickle")
+    with open(results_dir+fkine_link_file+'.pickle', 'rb') as h:
+        losses_link, duration = pickle.load(h)
+    with open(results_dir+fkine_mono_file+'.pickle', 'rb') as h:
+        losses_mono, duration = pickle.load(h)
     plt.figure()
     plt.plot(losses_link, alpha = 0.5, ls='--', marker='x', label='linked')
     plt.plot(losses_mono, alpha = 0.5, ls='-.', marker='s', label='monolithic')
@@ -167,10 +168,11 @@ if __name__ == '__main__':
     learn_kwargs = dict()
     learn_kwargs['seed'] = 1
     learn_kwargs['n_rollouts'] = 1000
-    learn_kwargs['learn_steps'] = 100  
+    learn_kwargs['learn_steps'] = 2  
     learn_kwargs['n_envs'] = 32 
     learn_kwargs['batch_size'] = 100 
     learn_kwargs['n_iter'] = 25
+    learn_kwargs['append'] = False 
 
     model_kwargs['model'] = 'FKineLinked'
     learn('compare/models', 'compare/results', 'compare/plots', model_kwargs, learn_kwargs, device=device)
