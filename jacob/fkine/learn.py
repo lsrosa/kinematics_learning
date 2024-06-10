@@ -22,12 +22,13 @@ def learn(models_dir, results_dir, plots_dir, model_kwargs, learn_kwargs, device
     fkine_file = "/fkine_"+_suffix
     
     if glob(models_dir+fkine_file+"*.pt"):
-        print('models exist, no training')
+        print('models exist')
         if learn_kwargs['append']:
             with open(results_dir+fkine_file+'.pickle', 'rb') as h:
                 losses, durations = pickle.load(h)
-            print('loading: ', losses, durations)
+            #print('loading: ', losses, durations)
         else:
+            print('no training')
             return
     else:
         losses = None 
