@@ -170,7 +170,7 @@ class FKineLinked(nn.Module):
             loss = l_kine+l_rot 
             #input()
 
-            mean_loss += l_kine.cpu().detach().numpy()[0]
+            mean_loss += l_kine.cpu().detach().numpy()[0]/self.n_joints
             
             self.fkines[j]._optim.zero_grad()
             loss.backward()
