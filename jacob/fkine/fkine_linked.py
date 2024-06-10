@@ -14,8 +14,6 @@ class FKine1(nn.Module):
         
         self.fkine.append(nn.Linear(3, n_hidden_layers[0]))
         self.fkine.append(activation())
-        # TODO: add initialization
-        self.disp = torch.rand(3).to(device).requires_grad_(True)
 
         for n_in, n_out in zip(n_hidden_layers[:-1], n_hidden_layers[1:]):
             self.fkine.append(nn.Linear(n_in, n_out))
@@ -52,25 +50,22 @@ class FKine1(nn.Module):
         #print('\nfkine1 q\n', _q)
         _t = self.fkine(_q).reshape(n_samples, 3, 4)
         #print('\nt\n', _t)
-        #print('\ndisp\n', self.disp.detach().cpu().numpy())
         # mount current T in a 4x4 matrix 
         t[:,:3,:4] = _t 
         #print('\nt4\n', t)
 
         # multiply with previous transforms
-        t_out = torch.matmul(t, t_prev)
+        t_out = torch.matmul(t_prev, t)
         #print('\ntout\n', t_out)
         return t_out, t 
     
     def state_dict(self):
         sd = dict()
         sd['fkine'] = self.fkine.state_dict()
-        sd['disp'] = self.disp
         return sd
 
     def load_state_dict(self, state_dict):
         self.fkine.load_state_dict(state_dict['fkine'])
-        self.disp = state_dict['disp']
         return
 
 class FKineLinked(nn.Module):
