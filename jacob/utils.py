@@ -5,7 +5,7 @@ import gymnasium as gym
 from rgym.envs.reachertest import ReacherTest
 from rgym.envs.reacherPolicy import ReacherPolicy
 
-from pathlib import Path
+from pathlib import Path as path
 from dm_control import mjcf
 
 def model_kwargs_2_str(n_dims, n_joints, lr, n_hidden, size_hidden, model=None):
@@ -43,8 +43,8 @@ def rand_between(limits):
     return ret
 
 def create_model_variation(model_dir, n_dims, n_joints, var):
-    var_dir = Path(model_dir)/'variations'
-    Path.mkdir(var_dir, exist_ok=True)
+    var_dir = path(model_dir)/'variations'
+    path.mkdir(var_dir, exist_ok=True)
     model_name = 'reacher%dd%dj'%(n_dims, n_joints)
     
     var_number = len(sorted(var_dir.glob('reacher%dd%dj*.xml'%(n_dims, n_joints))))+1

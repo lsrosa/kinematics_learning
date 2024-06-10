@@ -33,9 +33,8 @@ def learn(models_dir, results_dir, plots_dir, model_kwargs, learn_kwargs, device
         losses = None 
         durations = []
 
-    
-    env_kwargs={'n_dims':model_kwargs['n_dims'],
-                'n_joints':model_kwargs['n_joints']}
+    env_kwargs={'model_file':path.cwd()/('rgym/envs/assets/reacher%dd%dj.xml'%(model_kwargs['n_dims'], model_kwargs['n_joints']))}
+
     envs = make_vec_env("ReacherTest", env_kwargs=env_kwargs, n_envs=learn_kwargs['n_envs']) 
     print("----------------------------")
     print(f"Obs: {envs.observation_space}   Act: {envs.action_space}")

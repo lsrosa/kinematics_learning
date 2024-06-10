@@ -39,13 +39,12 @@ class ExReacherEnv(MujocoEnv, utils.EzPickle):
             model_file = path(kwargs.pop('model_file')) 
         else:
             model_file = path.cwd()/("rgym/envs/assets/default.xml")
-        print("loading custom reacher model: %s"%model_file)
+        #print("loading custom reacher model: %s"%model_file)
         
         # read the xml to get n_dims and n_joints
         model_xml = mjcf.from_path(model_file, escape_separators=True)
         self.n_dims = int(model_xml.find('numeric', 'ndims').data[0])
         self.n_joints = int(model_xml.find('numeric', 'njoints').data[0]) 
-        print(self.n_dims, self.n_joints)
         self.ee_link = self.n_joints-1
         
         model_file = model_file.as_posix()
@@ -73,7 +72,6 @@ class ExReacherEnv(MujocoEnv, utils.EzPickle):
             default_camera_config=DEFAULT_CAMERA_CONFIG,
             **kwargs,
         )
-        exit()
         return
 
     def step(self, a):
