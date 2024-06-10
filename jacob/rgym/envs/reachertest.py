@@ -14,52 +14,6 @@ from rgym.envs.ex_reacher_v0 import ExReacherEnv
 
 import os
 
-'''
-Reacher 
-- https://gymnasium.farama.org/environments/mujoco/reacher/
-- https://github.com/openai/gym/blob/master/gym/envs/mujoco/reacher_v4.py
-
-Action Space        Box(-1.0, 1.0, (2,), float32)
-
-                    torque applied to each joint
-
-Observation Space   Box(-inf, inf, (11,), float64)
-
-0 cosine of the angle of the first arm
-1 cosine of the angle of the second arm
-2 sine of the angle of the first arm
-3 sine of the angle of the second arm
-4 x-coordinate of the target            position (m)
-5 y-coordinate of the target            position (m)
-6 angular velocity of the first arm     angular velocity (rad/s)
-7 angular velocity of the second arm    angular velocity (rad/s)
-8 x-value of position_fingertip - position_target        position (m)
-9 y-value of position_fingertip - position_target        position (m)
-10 z-value of position_fingertip (0)    position (m)
-
-
-XML file
-
-0 angle of the first arm        angle (rad)
-1 angle of the second arm       angle (rad)
-2 x-coordinate of the target    position (m)
-3 y-coordinate of the target    position (m)
-
-
-reward_distance: This reward is a measure of how far the fingertip of the reacher (the unattached end) is from the target, with a more negative value assigned for when the reacher’s fingertip is further away from the target. It is calculated as the negative vector norm of (position of the fingertip - position of target), or -norm(“fingertip” - “target”).
-
-reward_control: A negative reward for penalising the walker if it takes actions that are too large. It is measured as the negative squared Euclidean norm of the action, i.e. as - sum(action2).
-
-The total reward returned is reward = reward_distance + reward_control
-
-The episode ends when any of the following happens:
-
-Truncation: The episode duration reaches a 50 timesteps (with a new random target popping up if the reacher’s fingertip reaches it before 50 timesteps)
-
-Termination: Any of the state space values is no longer finite.
-
-'''
-
 class ReacherTest(gym.Wrapper):
     def __init__(self, env: gym.Env[ObsType, ActType]):
         """Constructor for the observation wrapper."""
@@ -129,7 +83,7 @@ class ReacherTest(gym.Wrapper):
     def get_reward(self):
         return self.current_reward, self.current_info
 
-    def reward(self, observation, reward, info):
+    def reward(self, observation):
         dist_ee_target = observation[-self.unwrapped.n_dims:]
         r_dist = np.linalg.norm(dist_ee_target)
         vel = self.current_obs['xdot'][:,-1]
@@ -137,7 +91,7 @@ class ReacherTest(gym.Wrapper):
        
         g = r_dist<0.05 and r_vel<0.1
         
-        info = Dict()
+        info = dict()
         info['goal_achieved'] = g
         info['reward_vel'] = r_vel     
         info['reward_dist'] = r_dist 

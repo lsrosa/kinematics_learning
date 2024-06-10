@@ -24,11 +24,11 @@
                 
                 <body name="j1" pos="0 0 0.1">
                     <geom fromto="0 0 0 0 0 0.1" name="link2" rgba="0.0 0.4 0.6 1" size=".01" type="capsule"/>
-                    <joint axis="0 0 1" limited="true" range="-3.0 3.0"name="j2" pos="0 0 0" type="hinge"/>    
+                    <joint axis="0 0 1" limited="true" range="-3.0 3.0" name="j2" pos="0 0 0" type="hinge"/>    
                     
                     <body name="j2" pos="0 0 0.1">
                         <geom fromto="0 0 0 0 0 0.1" name="link3" rgba="0.0 0.4 0.6 1" size=".01" type="capsule"/>
-                        <joint axis="1 0 0" limited="true" range="-3.0 3.0"name="j3" pos="0 0 0" type="hinge"/>    
+                        <joint axis="1 0 0" limited="true" range="-3.0 3.0" name="j3" pos="0 0 0" type="hinge"/>    
                         
                         <body name="j3" pos="0 0 0.11">
                             <geom contype="0" name="fingertip" pos="0 0 0" rgba="0.0 0.8 0.6 1" size=".01" type="sphere"/>

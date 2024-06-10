@@ -23,10 +23,11 @@ if __name__ == '__main__':
     learn_kwargs = dict()
     learn_kwargs['seed'] = 1
     learn_kwargs['n_rollouts'] = 1000
-    learn_kwargs['learn_steps'] = 500 
+    learn_kwargs['learn_steps'] = 300 
     learn_kwargs['n_envs'] = 32 
     learn_kwargs['batch_size'] = 100 
     learn_kwargs['n_iter'] = 25 
+    learn_kwargs['append'] = True
 
     for model in ['FKineLinked', 'FKineMono']:
         for lr in [1e-4, 1e-5, 1e-6, 1e-7]:
@@ -39,7 +40,7 @@ if __name__ == '__main__':
                             model_kwargs['lr'] = lr
                             model_kwargs['n_hidden'] = nh
                             model_kwargs['size_hidden'] = sh 
-                            model_kwargs['n_joints'] = n_dims 
-                            model_kwargs['n_dims'] = n_joints 
+                            model_kwargs['n_joints'] = n_joints 
+                            model_kwargs['n_dims'] = n_dims 
 
                             learn('tunning', 'tunning', 'tunning', model_kwargs, learn_kwargs, device=device) 

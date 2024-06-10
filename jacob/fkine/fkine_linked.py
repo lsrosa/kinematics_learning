@@ -132,14 +132,14 @@ class FKineLinked(nn.Module):
 
     def loss_fkine(self, y_pred, y):
         n_samples = len(y_pred)
-
+        n_joints = y_pred[0].shape[1]
+        #print(n_joints)
         # accumulate cartesian error over all joints and all samples
         acc = torch.zeros(1).to(self.device)
         for s in range(n_samples):
-            #print(y_pred[s,:]-y[s])
-            #print(y_pred[s,:,-1]-y[s,:,-1])
+            #print(y_pred[s]-y[s])
             acc += torch.norm(y_pred[s]-y[s], dim=0).sum()
-        return acc/self.n_joints#/n_samples
+        return acc/n_joints
 
     def loss_rot_matrix(self, t):
         n_samples = t.shape[0]
@@ -156,7 +156,7 @@ class FKineLinked(nn.Module):
                 acc += torch.norm(torch.matmul(rot[s,j], torch.t(rot[s,j]))-torch.eye(3))
                 # determinant should be 1
                 acc += torch.norm(torch.det(rot[s,j]))
-        return acc/self.n_joints#/n_samples
+        return acc/n_joints
 
     def train(self, q, y):
         mean_loss = 0
@@ -164,8 +164,8 @@ class FKineLinked(nn.Module):
         for j in range(self.n_joints):
             #print('tempq', q[:,:j+1])
             y_pred, t = self.forward(q[:,:j+1])
-            #print(y_pred, y)
-            l_kine = self.loss_fkine(y_pred, y[:,:,:j+1])*2/(self.n_joints+1)
+            #print('\n\ntrain\n', y_pred, y)
+            l_kine = self.loss_fkine(y_pred, y[:,:,:j+1])
             l_rot = self.loss_rot_matrix(t)
             loss = l_kine+l_rot 
             #input()

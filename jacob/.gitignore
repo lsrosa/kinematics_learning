@@ -3,4 +3,5 @@ plots/
 tunning/
 compare/
 policy/
+logs/
 *.pt

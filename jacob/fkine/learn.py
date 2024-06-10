@@ -13,6 +13,7 @@ from matplotlib import pyplot as plt
 from utils import * 
 from time import time
 import pickle
+from glob import glob
 
 def learn(models_dir, results_dir, plots_dir, model_kwargs, learn_kwargs, device):
     print('Learning Model: %s'%model_kwargs['model'])
@@ -20,10 +21,19 @@ def learn(models_dir, results_dir, plots_dir, model_kwargs, learn_kwargs, device
     _suffix = model_kwargs_2_str(**model_kwargs)
     fkine_file = "/fkine_"+_suffix
     
-    if os.path.exists(models_dir+fkine_file+".pt"):
+    if glob(models_dir+fkine_file+"*.pt"):
         print('models exist, no training')
-        return 
+        if learn_kwargs['append']:
+            with open(results_dir+fkine_file+'.pickle', 'rb') as h:
+                losses, durations = pickle.load(h)
+            print('loading: ', losses, durations)
+        else:
+            return
+    else:
+        losses = None 
+        durations = []
 
+    
     env_kwargs={'n_dims':model_kwargs['n_dims'],
                 'n_joints':model_kwargs['n_joints']}
     envs = make_vec_env("ReacherTest", env_kwargs=env_kwargs, n_envs=learn_kwargs['n_envs']) 
@@ -60,18 +70,23 @@ def learn(models_dir, results_dir, plots_dir, model_kwargs, learn_kwargs, device
             obs, _, _, _ = envs.step(a)
             istep += envs.num_envs 
             run = model_cb._on_step()
-        losses = model_cb._on_rollout_end(bs=learn_kwargs['batch_size'], n_iter=learn_kwargs['n_iter'])
-        mean_losses.append(losses)
-    duration = time() - start_time
+        loss = model_cb._on_rollout_end(bs=learn_kwargs['batch_size'], n_iter=learn_kwargs['n_iter'])
+        mean_losses.append(loss)
+    durations.append(time() - start_time)
 
-    losses = np.array(mean_losses) 
-    torch.save(fkine_net.state_dict(), models_dir+fkine_file+".pt")
+    if not isinstance(losses, np.ndarray):
+        losses = np.array([mean_losses])
+    else:
+        losses = np.vstack((losses, np.array(mean_losses)))
+    torch.save(fkine_net.state_dict(), models_dir+fkine_file+"run%d.pt"%losses.shape[0])
 
     plt.figure()
-    plt.plot(losses)
+    epochs = np.linspace(1, losses.shape[1], losses.shape[1])
+    plt.fill_between(epochs, np.min(losses, axis=0), np.max(losses, axis=0), alpha=0.3)
+    plt.plot(epochs, np.mean(losses, axis=0))
     plt.ylabel('loss')
     plt.xlabel('epoch')
     plt.savefig(plots_dir+fkine_file+".png")
     with open(results_dir+fkine_file+'.pickle', 'wb') as h:
-        pickle.dump((losses, duration), h)
+        pickle.dump((losses, durations), h)
     return
