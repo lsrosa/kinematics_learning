@@ -112,6 +112,7 @@ class FKineLinked(nn.Module):
 
         t_prev = self._t0.repeat(n_samples, 1, 1)
         for j in range(n_joints):
+            #print('\n joint: ', j)
             _q = q[:,j].reshape(-1,1)
             #print('\nq\n', _q)
             #print('\ntprev\n', t_prev)
@@ -126,6 +127,9 @@ class FKineLinked(nn.Module):
         return y, t 
 
     def loss_fkine(self, y_pred, y):
+        ret = (y_pred-y).norm(dim=1).mean()
+        return ret
+        '''
         n_samples = len(y_pred)
         n_joints = y_pred[0].shape[1]
         #print(n_joints)
@@ -135,8 +139,25 @@ class FKineLinked(nn.Module):
             #print(y_pred[s]-y[s])
             acc += torch.norm(y_pred[s]-y[s], dim=0).sum()
         return acc/n_joints
+        '''
 
     def loss_rot_matrix(self, t):
+        rot = t[:,:,:3,:3]
+        #print('\nrot ', rot)
+        l_det = (rot.det()-1).mean()
+        
+        rott = rot.transpose(2, 3)
+        #print('\nrott ', rott)
+        rotxrott = torch.matmul(rot, rott)
+        #print('\nrotxrott ', rotxrott)
+        deye = rotxrott-torch.eye(3)
+        #print('\ntt-eye ', deye)
+        #print('\nnorm ', deye.norm(dim=(2,3)))
+        #print('\nmean ', deye.norm(dim=(2,3)).mean())
+        l_identity = deye.norm(dim=(2,3)).mean()
+        ret = l_det + l_identity
+        return ret
+        '''
         n_samples = t.shape[0]
         n_joints = t.shape[1]
         #print(t.shape)
@@ -152,20 +173,21 @@ class FKineLinked(nn.Module):
                 # determinant should be 1
                 acc += torch.norm(torch.det(rot[s,j]))
         return acc/n_joints
+        '''
 
     def train(self, q, y):
         mean_loss = 0
         #print('link train',q)
         for j in range(self.n_joints):
+            #print('joint: ', j)
             #print('tempq', q[:,:j+1])
             y_pred, t = self.forward(q[:,:j+1])
-            #print('\n\ntrain\n', y_pred, y)
+            #print('\n\ntrain\n', y_pred, t)
             l_kine = self.loss_fkine(y_pred, y[:,:,:j+1])
             l_rot = self.loss_rot_matrix(t)
             loss = l_kine+l_rot 
             #input()
-
-            mean_loss += l_kine.cpu().detach().numpy()[0]/self.n_joints
+            mean_loss += l_kine.cpu().detach().numpy()/self.n_joints
             
             self.fkines[j]._optim.zero_grad()
             loss.backward()
