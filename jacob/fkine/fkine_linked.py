@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 class FKine1(nn.Module):
-    def __init__(self, n_dims, n_hidden_layers, lr, activation, prev_params, initializer, device):
+    def __init__(self, n_dims, n_hidden_layers, lr, activation, initializer, device):
         super(FKine1, self).__init__()
 
         # save these for later use
@@ -31,13 +31,10 @@ class FKine1(nn.Module):
                 initializer(l.weight)
                 l.bias.data.fill_(0.0)
 
-        self._params = prev_params + list(self.fkine.parameters())
-        # optimizer
-        self._optim = torch.optim.SGD(self._params, lr=lr)
         return
     
     def parameters(self):
-        return self._params 
+        return list(self.fkine.parameters()) 
     
     def forward(self, theta, t_prev):
         n_samples = len(theta)
@@ -80,13 +77,17 @@ class FKineLinked(nn.Module):
         
         # instantiate and set params
         self.fkines = []
-        prev_params = []
+        self._params = []
         for j in range(n_joints):
-            self.fkines.append(FKine1(n_dims, self.n_hidden_layers, lr, activation, prev_params, initializer, self.device)) 
-            prev_params = self.fkines[-1].parameters()
+            self.fkines.append(FKine1(n_dims, self.n_hidden_layers, lr, activation, initializer, self.device)) 
+            self._params += self.fkines[-1].parameters()
             self.fkines[-1].to(self.device)
+
         # DH transformations are always 4x4
         self._t0 = torch.eye(4).to(device)
+        
+        # optimizer
+        self._optim = torch.optim.SGD(self._params, lr=lr)
         return
 
     def state_dict(self):
@@ -129,17 +130,6 @@ class FKineLinked(nn.Module):
     def loss_fkine(self, y_pred, y):
         ret = (y_pred-y).norm(dim=1).mean()
         return ret
-        '''
-        n_samples = len(y_pred)
-        n_joints = y_pred[0].shape[1]
-        #print(n_joints)
-        # accumulate cartesian error over all joints and all samples
-        acc = torch.zeros(1).to(self.device)
-        for s in range(n_samples):
-            #print(y_pred[s]-y[s])
-            acc += torch.norm(y_pred[s]-y[s], dim=0).sum()
-        return acc/n_joints
-        '''
 
     def loss_rot_matrix(self, t):
         rot = t[:,:,:3,:3]
@@ -157,26 +147,18 @@ class FKineLinked(nn.Module):
         l_identity = deye.norm(dim=(2,3)).mean()
         ret = l_det + l_identity
         return ret
-        '''
-        n_samples = t.shape[0]
-        n_joints = t.shape[1]
-        #print(t.shape)
-
-        acc = torch.zeros(1).to(self.device)
-        rot = t[:,:,:3,:3]
-        #print('rot:', rot)
-        for s in range(n_samples):
-            for j in range(n_joints):
-                #print(rot[s,j])
-                # the transpose should be the inverse
-                acc += torch.norm(torch.matmul(rot[s,j], torch.t(rot[s,j]))-torch.eye(3))
-                # determinant should be 1
-                acc += torch.norm(torch.det(rot[s,j]))
-        return acc/n_joints
-        '''
 
     def train(self, q, y):
-        mean_loss = 0
+        y_pred, t = self.forward(q)
+        l_kine = self.loss_fkine(y_pred, y)
+        l_rot = self.loss_rot_matrix(t)
+        loss = l_kine+l_rot 
+        mean_loss = l_kine.cpu().detach().numpy()
+        self._optim.zero_grad()
+        loss.backward()
+        self._optim.step()
+        '''
+        mean_soss = 0
         #print('link train',q)
         for j in range(self.n_joints):
             #print('joint: ', j)
@@ -192,4 +174,5 @@ class FKineLinked(nn.Module):
             self.fkines[j]._optim.zero_grad()
             loss.backward()
             self.fkines[j]._optim.step()
+        '''
         return mean_loss

@@ -72,7 +72,14 @@ class ExReacherEnv(MujocoEnv, utils.EzPickle):
             default_camera_config=DEFAULT_CAMERA_CONFIG,
             **kwargs,
         )
+        
+        #extended
+        # get a random position in joint space
+        self.joints_limits = (self.model.jnt_range)[:self.n_joints]
         return
+    
+    def sample_joints(self):
+        return rand_between(self.joints_limits)
 
     def step(self, a):
         vec = self.get_body_com("j%d"%self.ee_link)[:self.n_dims] - self.get_body_com("target")[:self.n_dims]#extended
@@ -98,17 +105,19 @@ class ExReacherEnv(MujocoEnv, utils.EzPickle):
         # This truncated gets set to true if env has more steps then the max_episode_steps 
         ret = ob, reward, False, False, dict(reward_dist=reward_dist, reward_ctrl=reward_ctrl)
         return ret 
+    
+    def set_joint_state(self, q):
+        _qpos = np.hstack((self.sample_joints(),np.zeros(3)))
+        _qvel = np.zeros(self.model.nq)
+        self.set_state(_qpos, _qvel)
+        return
 
     def reset_model(self):
         qpos = self.init_qpos
         qpos[:self.n_joints] += self.np_random.uniform(low=-0.1, high=0.1, size=self.n_joints)
 
-        #extended
-        # get a random position in joint space
-        joints_limits = (self.model.jnt_range)[:self.n_joints]
-        _qpos = np.hstack((rand_between(joints_limits),np.zeros(3)))
-        _qvel = np.zeros(self.model.nq)
-        self.set_state(_qpos, _qvel)
+        # set random joints
+        self.set_joint_state(self.sample_joints())
         
         # get goal as the fingertip position of that random position
         goal = self.get_body_com("j%d"%self.ee_link)

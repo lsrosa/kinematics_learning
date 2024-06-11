@@ -52,7 +52,12 @@ def learn(models_dir, results_dir, plots_dir, model_kwargs, learn_kwargs, device
     learn_steps = learn_kwargs['learn_steps']*envs.num_envs*learn_kwargs['n_rollouts']
     current_seed = learn_kwargs['seed'] 
     mean_losses = []
-    a = np.zeros((envs.num_envs, envs.action_space.shape[0]))
+    
+    obs = dict()
+    for key in envs.unwrapped.observation_space.keys():
+        obs[key] = np.empty(shape=(envs.num_envs,)+envs.unwrapped.observation_space[key].shape)
+    #a = np.zeros((envs.num_envs, envs.action_space.shape[0]))
+    
     istep = 0
     run = True
     
@@ -65,9 +70,11 @@ def learn(models_dir, results_dir, plots_dir, model_kwargs, learn_kwargs, device
         
         model_cb._on_rollout_start()
         for _ in range(learn_kwargs['n_rollouts']):
-            for ienv in range(envs.num_envs):
-                a[ienv] = envs.envs[ienv].action_space.sample()
-            obs, _, _, _ = envs.step(a)
+            for env in envs.envs:
+                _q = env.unwrapped.sample_joints() 
+                env.unwrapped.set_joint_state(_q) 
+
+            #obs, _, _, _ = envs.step(a)
             istep += envs.num_envs 
             run = model_cb._on_step()
         loss = model_cb._on_rollout_end(bs=learn_kwargs['batch_size'], n_iter=learn_kwargs['n_iter'])

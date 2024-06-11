@@ -62,7 +62,7 @@ class LearnCB(BaseCallback):
     def _on_step(self) -> bool:
         if self.fkine != None:
             for env in self.env.envs:
-                obs = env.get_observation()  # using wrappers
+                obs = env.compute_observation()  # using wrappers
                 rew, info = env.get_reward()
                 self.data.add(obs['q'], obs['qdot'], obs['x'], obs['xdot'])
         return not self.user_quit[0]

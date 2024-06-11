@@ -55,15 +55,6 @@ class FKineMono(nn.Module):
     def loss_fkine(self, y_pred, y):
         ret = (y_pred-y).norm(dim=1).mean()
         return ret
-        '''
-        n_samples = len(y_pred)
-        
-        # accumulate cartesian error over all joints and all samples
-        acc = torch.zeros(1).to(self.device)
-        for s in range(n_samples):
-            acc += torch.norm(y_pred[s]-y[s], dim=0).sum()
-        return acc/self.n_joints
-        '''
 
     def train(self, q, y):
         y_pred = self.forward(q)

@@ -31,17 +31,6 @@ def make_dirs(names = []):
         if not os.path.exists(name):
             os.makedirs(name)
 
-def rand_between(limits):
-    n = len(limits)
-    ret = np.zeros(n)
-
-    for i in range(n):
-        low = limits[i,0]
-        high = limits[i,1]
-
-        ret[i] = np.random.rand()*(high-low)+low
-    return ret
-
 def create_model_variation(model_dir, n_dims, n_joints, var):
     var_dir = path(model_dir)/'variations'
     path.mkdir(var_dir, exist_ok=True)
