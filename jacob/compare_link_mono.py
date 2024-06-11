@@ -238,7 +238,7 @@ if __name__ == '__main__':
     learn_kwargs['n_envs'] = 32 
     learn_kwargs['batch_size'] = 20#100 
     learn_kwargs['n_iter'] = 50
-    learn_kwargs['append'] = False
+    learn_kwargs['append'] = True 
 
     model_kwargs['model'] = 'FKineLinked'
     learn('compare/models', 'compare/results', 'compare/plots', model_kwargs, learn_kwargs, device=device)
