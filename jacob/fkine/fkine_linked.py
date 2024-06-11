@@ -44,16 +44,12 @@ class FKine1(nn.Module):
         t = self._dh_null.repeat(n_samples, 1, 1).to(self.device) 
         # allocate memory for T origin to this joint
         t_out = torch.zeros(n_samples, 4, 4).to(self.device)
-        #print('\nfkine1 q\n', _q)
         _t = self.fkine(_q).reshape(n_samples, 3, 4)
-        #print('\nt\n', _t)
         # mount current T in a 4x4 matrix 
         t[:,:3,:4] = _t 
-        #print('\nt4\n', t)
 
         # multiply with previous transforms
         t_out = torch.matmul(t_prev, t)
-        #print('\ntout\n', t_out)
         return t_out, t 
     
     def state_dict(self):
@@ -66,7 +62,7 @@ class FKine1(nn.Module):
         return
 
 class FKineLinked(nn.Module):
-    def __init__(self, n_joints, n_dims, n_hidden, size_hidden, lr=1e-4, activation = nn.ReLU, initializer = nn.init.xavier_uniform_, device = 'cpu', model=None):
+    def __init__(self, n_joints, n_dims, n_hidden, size_hidden, lr=1e-4, activation = nn.Tanh, initializer = nn.init.xavier_uniform_, device = 'cpu', model=None):
         super(FKineLinked, self).__init__()
         
         # save these for later use
@@ -107,24 +103,15 @@ class FKineLinked(nn.Module):
         
         n_samples = q.shape[0]
         n_joints = q.shape[1]
-        #print(n_samples, n_joints)
         y = torch.zeros(n_samples, self.n_dims, n_joints).to(self.device)
         t = torch.zeros(n_samples, n_joints, 4, 4)
 
         t_prev = self._t0.repeat(n_samples, 1, 1)
         for j in range(n_joints):
-            #print('\n joint: ', j)
             _q = q[:,j].reshape(-1,1)
-            #print('\nq\n', _q)
-            #print('\ntprev\n', t_prev)
             t_prev, t[:, j, :, :] = self.fkines[j](_q, t_prev)
-            #print('\ntnew\n', t_prev)
             _y = t_prev[:,:3, 3]
-            #print('\nbedfore y\n',y)
             y[:, :, j] = _y[:,:self.n_dims]
-            #print('\n after y\n',y)
-            #input()
-        #print('y', y)
         return y, t 
 
     def loss_fkine(self, y_pred, y):
@@ -133,17 +120,11 @@ class FKineLinked(nn.Module):
 
     def loss_rot_matrix(self, t):
         rot = t[:,:,:3,:3]
-        #print('\nrot ', rot)
         l_det = (rot.det()-1).mean()
         
         rott = rot.transpose(2, 3)
-        #print('\nrott ', rott)
         rotxrott = torch.matmul(rot, rott)
-        #print('\nrotxrott ', rotxrott)
         deye = rotxrott-torch.eye(3)
-        #print('\ntt-eye ', deye)
-        #print('\nnorm ', deye.norm(dim=(2,3)))
-        #print('\nmean ', deye.norm(dim=(2,3)).mean())
         l_identity = deye.norm(dim=(2,3)).mean()
         ret = l_det + l_identity
         return ret
@@ -152,7 +133,7 @@ class FKineLinked(nn.Module):
         y_pred, t = self.forward(q)
         l_kine = self.loss_fkine(y_pred, y)
         l_rot = self.loss_rot_matrix(t)
-        loss = l_kine+l_rot 
+        loss = l_kine#+l_rot 
         mean_loss = l_kine.cpu().detach().numpy()
         self._optim.zero_grad()
         loss.backward()

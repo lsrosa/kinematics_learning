@@ -225,7 +225,7 @@ def test(models_dir, results_dir, plots_dir, model_kwargs, device):
 
 if __name__ == '__main__':
     model_kwargs = dict()
-    model_kwargs['lr'] = 1e-5#[1e-4, 1e-5, 1e-6, 1e-7]
+    model_kwargs['lr'] = 5e-4#[1e-5, 1e-6, 1e-7]
     model_kwargs['n_hidden'] = 3#[2, 3, 4, 5]
     model_kwargs['size_hidden'] = 32#[8, 16, 32, 64]
     model_kwargs['n_joints'] = 2#[2,3]
@@ -236,9 +236,9 @@ if __name__ == '__main__':
     learn_kwargs['n_rollouts'] = 100
     learn_kwargs['learn_steps'] = 500 
     learn_kwargs['n_envs'] = 32 
-    learn_kwargs['batch_size'] = 100 
+    learn_kwargs['batch_size'] = 20#100 
     learn_kwargs['n_iter'] = 50
-    learn_kwargs['append'] = True 
+    learn_kwargs['append'] = False
 
     model_kwargs['model'] = 'FKineLinked'
     learn('compare/models', 'compare/results', 'compare/plots', model_kwargs, learn_kwargs, device=device)

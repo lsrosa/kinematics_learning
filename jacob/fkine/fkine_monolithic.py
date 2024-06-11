@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 class FKineMono(nn.Module):
-    def __init__(self, n_joints, n_dims, n_hidden, size_hidden, lr=1e-4, activation = nn.ReLU, initializer = nn.init.xavier_uniform_, device = 'cpu', model=None):
+    def __init__(self, n_joints, n_dims, n_hidden, size_hidden, lr=1e-4, activation = nn.Tanh, initializer = nn.init.xavier_uniform_, device = 'cpu', model=None):
         super(FKineMono, self).__init__()
 
         # save these for later use

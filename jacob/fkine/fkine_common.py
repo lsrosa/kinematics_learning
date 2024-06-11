@@ -8,14 +8,18 @@ from stable_baselines3.common.callbacks import BaseCallback
 
 #------------------- Incremental Dataset --------------
 class IncrDataset(Dataset):
-    def __init__(self, size=0, max_size=1e5):
+    def __init__(self, size=0, max_size=1e5, dropout_size=None):
         self.size = size
         self.max_size = max_size
+        if dropout_size == None:
+            self.dropout = round(max_size/10)
+        else:
+            self.dropout = dropout_size
+        
         self.q = []
         self.qdot = []
         self.x = []
         self.xdot = []
-
     def __len__(self):
         return self.size
 
@@ -29,10 +33,11 @@ class IncrDataset(Dataset):
     # TODO: should try to pre-allocate the memory and use indexes instead of allocating and de-allocating memory
     def add(self, q, qdot, x, xdot):
         if self.size == self.max_size:
-            self.q.pop(0)
-            self.qdot.pop(0)
-            self.x.pop(0)
-            self.xdot.pop(0)
+            self.q = self.q[self.dropout:]
+            self.qdot = self.qdot[self.dropout:]
+            self.x = self.x[self.dropout:]
+            self.xdot = self.xdot[self.dropout:]
+            self.size = len(self.q)
         else:
             self.size += 1
 
