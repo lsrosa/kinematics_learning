@@ -10,7 +10,7 @@ We implement $\nnMono$ and $\nnLink$ as feed-forward \gls{nn}.
 %
 While other approximators could be used, e.g., \glspl{gp} as in \cite{dalla2020autonomous}, their evaluation falls out-of-the-scope of this paper.
 
-\subsection{Tuning $\nn$}\label{subsec: tuning}
+\subsection{Parameters Tuning}\label{subsec: tuning}
 
 In order to assure appropriate hyper-parameters for $\nn$, we perform a tuning for each model, which results in the values presented in Table \ref{tab: tune fkine}, where $lr$ is the learning rate, and \texttt{arch} is an array containing the number of elements neurons in each \gls{nn} layer. 
 %
@@ -53,7 +53,7 @@ Figure \ref{fig: loss fkines} presents the losses when learning $\nnMono$ and $\
 	\label{fig: loss fkines}
 \end{figure*}
 
-For qualitative comparison, Figure \ref{fig: joints position} presents the joints position estimation obtained by $\nnMono$ and $\nnLink$, in which the higher accuracy can be seem.
+For qualitative comparison, Figure \ref{fig: joints position} presents the joints position estimation obtained by $\nnMono$ and $\nnLink$ for $\nDims=3$ and $\nJoints=7$ only (the 2D and other joint numbers cases are omitted for briefness), in which the higher accuracy can be seem.
 
 \begin{figure*}
 	\includegraphics[width=\textwidth, height=2in]{example-image-a}
@@ -61,9 +61,13 @@ For qualitative comparison, Figure \ref{fig: joints position} presents the joint
 	\label{fig: joints position}
 \end{figure*}
 
-Next, to demonstrate the accuracy impacts, we estimate the end-effector velocity $\dot{\pos}_j = \left[\jacob\dot{\rotAngle{}}\right]_j$, where $\jacob$ is the unknown Jacobian matrix of the robot, as $\prediction{\dot{\pos}}_j = \left[\frac{\partial\nn}{\partial\rotAngle{}}\right]_j$.
+Next, to demonstrate the accuracy impacts, we estimate the end-effector velocity $\dot{\pos}_j = \left[\jacob\dot{\rotAngle{}}\right]_j$, where $\jacob$ is the unknown Jacobian matrix of the robot, as $\prediction{\dot{\pos}}_j = \left[\frac{\partial\nn}{\partial\rotAngle{}}\dot{\rotAngle{}}\right]_j$.
 %
-Figure \ref{fig: ee vel} shows the velocity estimation and ground-truth obtained from the simulator for $\nDims=3$ and $\nJoints=7$ only, while for the 2D and other joint number cases are omitted for briefness.
+That is, we use the learned network for estimating the unknown Jacobian of the model, which has its well-known applications in inverse kinematics \cite{waldron1985study} computation, Cartesian impedance controllers \cite{sanchez2010cartesian}, and tracking controllers \cite{chen2017tracking}.
+%
+Figure \ref{fig: ee vel} shows the velocity estimation and ground-truth obtained from the simulator for $\nDims=3$ and $\nJoints=7$.
+%
+The better accuracy of the proposed architecture indicates its adequacy for being used in higher level applications, while the monolithic architecture poor accuracy might impact higher level applications badly.
 
 \begin{figure}
 	\includegraphics[width=\linewidth]{example-image-a}
