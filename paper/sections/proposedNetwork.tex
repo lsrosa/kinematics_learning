@@ -2,12 +2,13 @@
 
 \subsection{Overview}\label{subsec: overview}
 
-While approaches in the literature propose to learn a monolithic approximator $\predMono = \nnMono(\vector{\rotAngle{}}):\realSet{\nJoints}\rightarrow\realSet{\nDims\times\nJoints}$, our main idea is to learn one approximator for each joint $\joint{i}$, which encodes $\matrix{T}_{i-1}^{i}$, and thus learning $\nJoints$ predictors $\predLink_i = \nnLink_i(\vector{\rotAngle{i}}):\realSet{1}\rightarrow\realSet{\nDims\times(\nDims+1)}~|~i\in\{1,\hdots\nJoints\}$.
+While approaches in the literature propose to learn a monolithic approximator $\predMono = \nnMono(\vector{\rotAngle{}}):\realSet{\nJoints}\rightarrow\realSet{\nDims\times\nJoints}$, our main idea is to learn one approximator for each joint $\joint{i}$, which encodes $\matrix{T}_{i-1}^{i}$, and thus learning $\nJoints$ predictors $\predLink_i = \nnLink_i(\vector{\rotAngle{i}}):\realSet{1}\rightarrow\realSet{\nDims\times(\nDims+1)}~|~i\in\{1,\hdots\nJoints\}$, and joining all $\nnLink_i$ leads to the proposed model $\nnLink$.
+
 
 \begin{figure}
 	\centering
 	\includegraphics[width=\linewidth]{linked_network_overview.pdf}
-	\caption{Proposed architecture. For each joint $i\in\{1,\hdots,j\}$, a network $\Phi_i$ learns the \gls{dh} transformation from joint $i-1$ to $i$ $\matrix{R}_{i-1}^{i}$.
+	\caption{Proposed architecture. For each joint $i\in\{1,\hdots,j\}$, a network $\nnLink_i$ learns the \gls{dh} transformation from joint $i-1$ to $i$ $\matrix{R}_{i-1}^{i}$.
 	%
 	$\matrix{R}_{i-1}^{i}$ is multiplied by the cumulative transformation of all previous joints, resulting in $\matrix{R}_{0}^{i}$, from which the Cartesian position of joint $i$ $\prediction{\vector{x}}_i$ is obtained directly.}
 	\label{fig:linked network overview}
@@ -79,3 +80,7 @@ Next, $nIterations$ of training is done with the data already within the memory,
 		}
 	}
 \end{algorithm}
+
+It is worthy to notice that in our tests, we observed that randomly sampling poses leads to a much higher efficiency than performing random walks, which is to be expected due to the better state space coverage. 
+%
+However, when considering a real robot in the \gls{rl} loop, it is unpractical to sample the state space this way, since the robot will be naturally performing a random walk. 

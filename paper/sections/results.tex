@@ -1,1 +1,72 @@
 \section{Results}\label{sec: results}
+
+\subsection{Testing Environment}\label{subsec: test env}
+
+We build upon the \texttt{Reacher} environment from OpenAI Gym \cite{gym}, which consists of a 2D serial manipulator with $2$ joints simulated using MuJoCo \cite{todorov2012mujoco}.
+%
+In order to evaluate the proposed approach for more realistic robots, we extend the environment enabling for 3D, and adding models for robots up to $7$ joints\footnote{Publicly available source code: \href{https://github.com/lsrosa/kinematics\_learning}{https://github.com/lsrosa/kinematics\_learning}}.
+
+We implement $\nnMono$ and $\nnLink$ as feed-forward \gls{nn}.
+%
+While other approximators could be used, e.g., \glspl{gp} as in \cite{dalla2020autonomous}, their evaluation falls out-of-the-scope of this paper.
+
+\subsection{Tuning $\nn$}\label{subsec: tuning}
+
+In order to assure appropriate hyper-parameters for $\nn$, we perform a tuning for each model, which results in the values presented in Table \ref{tab: tune fkine}, where $lr$ is the learning rate, and \texttt{arch} is an array containing the number of elements neurons in each \gls{nn} layer. 
+%
+For the learning hyper-parameter of Algorithm \ref{alg: train nn}, we found that $nSamples=1e^3$, $epochs=500$, $nIterations=50$, $batchSize=100$ are adequate values for all networks.
+
+\begin{table}
+	\centering
+	\begin{tabulary}{\linewidth}{c|c|c|c|c|c|c|c}
+		\toprule
+		\multicolumn{8}{c}{$\nDims=2$} \\\hline
+		$\nJoints$ & 1 & 2 & 3 & 4 & 5 & 6 & 7 \\\midrule
+		$lr$ & & & & & & & \\\hline
+		$\nnMono$ \texttt{arch} & & & & & & & \\
+		\midrule
+		\multicolumn{8}{c}{$\nDims=3$} \\\hline
+		$lr$ & & & & & & & \\\hline
+		$\nnMono$ \texttt{arch} & & & & & & & \\
+		\midrule
+		\midrule
+		\multicolumn{8}{c}{$\nDims=2$} \\\hline
+		$lr$ & & & & & & & \\\hline
+		$\nnLink$ \texttt{arch} & & & & & & & \\
+		\midrule
+		\multicolumn{8}{c}{$\nDims=3$} \\\hline
+		$lr$ & & & & & & & \\\hline
+		$\nnLink$ \texttt{arch} & & & & & & & \\
+		\bottomrule
+	\end{tabulary}
+	\caption{Tuning parameters for 2D and 3D robots with varying number of joints.}
+	\label{tab: tune fkine}
+\end{table}
+
+\subsection{Loss and Accuracy Results}
+
+Figure \ref{fig: loss fkines} presents the losses when learning $\nnMono$ and $\nnLink$, which shows that the proposed architecture outperforms the monolithic approach found used in the literature.
+
+\begin{figure*}
+	\includegraphics[width=\textwidth, height=2in]{example-image-a}
+	\caption{Loss comparison between $\nnMono$ and $\nnLink$. The solid line and shaded area represent the mean loss and the area between minimum and maximum losses over $30$ trials.}
+	\label{fig: loss fkines}
+\end{figure*}
+
+For qualitative comparison, Figure \ref{fig: joints position} presents the joints position estimation obtained by $\nnMono$ and $\nnLink$, in which the higher accuracy can be seem.
+
+\begin{figure*}
+	\includegraphics[width=\textwidth, height=2in]{example-image-a}
+	\caption{Joints position estimation comparison for $\nnMono$ and $\nnLink$.}
+	\label{fig: joints position}
+\end{figure*}
+
+Next, to demonstrate the accuracy impacts, we estimate the end-effector velocity $\dot{\pos}_j = \left[\jacob\dot{\rotAngle{}}\right]_j$, where $\jacob$ is the unknown Jacobian matrix of the robot, as $\prediction{\dot{\pos}}_j = \left[\frac{\partial\nn}{\partial\rotAngle{}}\right]_j$.
+%
+Figure \ref{fig: ee vel} shows the velocity estimation and ground-truth obtained from the simulator for $\nDims=3$ and $\nJoints=7$ only, while for the 2D and other joint number cases are omitted for briefness.
+
+\begin{figure}
+	\includegraphics[width=\linewidth]{example-image-a}
+	\caption{End-effector velocity estimation comparison for $\nnMono$ and $\nnLink$.}
+	\label{fig: ee vel}
+\end{figure}
