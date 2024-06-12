@@ -12,10 +12,10 @@ def tune(folder):
             "--n-jobs",
             "16",
             "-n",
-            "100",
+            "1000",
             "-optimize",
             "--n-trials",
-            "10",
+            "100",
             "--pruner",
             "median",
             "--log-folder",
@@ -57,7 +57,7 @@ def tune_and_report(models_folder, n_dims, n_joints):
 
 if __name__ == "__main__":
     models_foder = "rgym/envs/assets"
-    for n_dims in [3]:#[2, 3]:
-        for n_joints in [7]:#[2, 3, 4, 5, 6, 7]:    
+    for n_dims in [2]:#[2, 3]:
+        for n_joints in [2]:#[2, 3, 4, 5, 6, 7]:    
             tune_and_report(models_foder, n_dims, n_joints)
     

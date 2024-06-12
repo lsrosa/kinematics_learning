@@ -38,7 +38,7 @@ def test(models_dir, results_dir, plots_dir, model_kwargs, device):
     
     fkine_link_model_files = sorted(glob(models_dir+fkine_link_file+"*.pt"))
     fkine_mono_model_files = sorted(glob(models_dir+fkine_mono_file+"*.pt"))
-    
+
     error_y_link = []
     error_y_mono = []
     error_y_dot_link = []
@@ -181,7 +181,7 @@ def test(models_dir, results_dir, plots_dir, model_kwargs, device):
             plt.subplot(n_dims, n_joints, idx+1)
             plt.gca().set_prop_cycle(None)
             plt.plot(steps, error_y_link[:, :, idx].mean(axis=0), label='linked')
-            plt.fill_between(steps, error_y_link[:,:, idx].min(axis=0), error_y_link[:, :, idx].max(axis=0), alpha=0.3)
+            plt.fill_between(steps, error_y_link[:, :, idx].min(axis=0), error_y_link[:, :, idx].max(axis=0), alpha=0.3)
             plt.plot(steps, error_y_mono[:, :, idx].mean(axis=0), label='monolithic')
             plt.fill_between(steps, error_y_mono[:, :, idx].min(axis=0), error_y_mono[:, :, idx].max(axis=0), alpha=0.3)
             plt.title(_titles[idx])
@@ -228,8 +228,8 @@ if __name__ == '__main__':
     model_kwargs['lr'] = 5e-4#[1e-5, 1e-6, 1e-7]
     model_kwargs['n_hidden'] = 3#[2, 3, 4, 5]
     model_kwargs['size_hidden'] = 32#[8, 16, 32, 64]
-    model_kwargs['n_joints'] = 7#[2,3]
-    model_kwargs['n_dims'] = 3#[2,3]
+    model_kwargs['n_joints'] = 2#[2,3]
+    model_kwargs['n_dims'] = 2#[2,3]
     
     learn_kwargs = dict()
     learn_kwargs['seed'] = 1
@@ -238,14 +238,14 @@ if __name__ == '__main__':
     learn_kwargs['n_envs'] = 32 
     learn_kwargs['batch_size'] = 20#100 
     learn_kwargs['n_iter'] = 50
-    learn_kwargs['append'] = True 
+    learn_kwargs['append'] = False 
 
     model_kwargs['model'] = 'FKineLinked'
-    learn('compare/models', 'compare/results', 'compare/plots', model_kwargs, learn_kwargs, device=device)
+    learn('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs, learn_kwargs, device=device)
     
     model_kwargs['model'] = 'FKineMono'
-    learn('compare/models', 'compare/results', 'compare/plots', model_kwargs, learn_kwargs, device=device)
-    test('compare/models', 'compare/results', 'compare/plots', model_kwargs, device=device)
+    learn('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs, learn_kwargs, device=device)
+    test('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs, device=device)
 
 
 

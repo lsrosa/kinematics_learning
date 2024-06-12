@@ -14,6 +14,7 @@ from utils import *
 from time import time
 import pickle
 from glob import glob
+import json
 
 def learn(models_dir, results_dir, plots_dir, model_kwargs, learn_kwargs, device):
     print('Learning Model: %s'%model_kwargs['model'])
@@ -21,6 +22,10 @@ def learn(models_dir, results_dir, plots_dir, model_kwargs, learn_kwargs, device
     _suffix = model_kwargs_2_str(**model_kwargs)
     fkine_file = "/fkine_"+_suffix
     
+    kwargs_file = models_dir+fkine_file+'_kwargs.json'
+    with open(kwargs_file, 'w') as f:
+        json.dump(model_kwargs, f)
+
     if glob(models_dir+fkine_file+"*.pt"):
         print('models exist')
         if learn_kwargs['append']:

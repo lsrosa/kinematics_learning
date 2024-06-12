@@ -4,6 +4,7 @@ import numpy as np
 import gymnasium as gym
 from rgym.envs.reachertest import ReacherTest
 from rgym.envs.reacherPolicy import ReacherPolicy
+from rgym.envs.reacherRePolicy import ReacherRePolicy
 
 from pathlib import Path as path
 from dm_control import mjcf

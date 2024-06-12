@@ -7,7 +7,7 @@ from stable_baselines3.common.env_util import make_vec_env
 from utils import *
 import json
 
-MODEL_TYPE = SAC
+POLICY_TYPE = SAC
 
 net_arch = {
         "t2": [32, 32],
@@ -34,16 +34,16 @@ def learn(models_dir, results_dir, plots_dir, env_kwargs, sac_kwargs, learn_kwar
     if os.path.exists(models_dir+'/'+model_name+".zip") and not refine:
         print('model exist, no training')
         return
-    
+     
     env = make_vec_env("ReacherPolicy", env_kwargs=env_kwargs, n_envs=n_envs)
 
     if os.path.exists(models_dir+'/'+model_name+".zip") and refine:
         print('Loading existing model')
-        model = MODEL_TYPE.load(models_dir+'/'+model_name, env=env, **sac_kwargs)
+        model = POLICY_TYPE.load(models_dir+'/'+model_name, env=env, **sac_kwargs)
         prev_timesteps = model._total_timesteps 
     else:
         print('Creating new model')
-        model = MODEL_TYPE("MultiInputPolicy", env, verbose=1, device=device, tensorboard_log=models_dir+'/logs', **sac_kwargs)
+        model = POLICY_TYPE("MultiInputPolicy", env, verbose=1, device=device, tensorboard_log=models_dir+'/logs', **sac_kwargs)
         prev_timesteps = 0 
     # TODO: there is something weird were we have rollouts without training every so often, as result the reward has two curves 
     learn_kwargs['total_timesteps'] += prev_timesteps 
@@ -58,7 +58,7 @@ def play(models_dir, env_kwargs):
     env_kwargs['render_mode'] = 'human'
     env = make_env(env_name='ReacherPolicy', **env_kwargs)
     
-    model = MODEL_TYPE.load(models_dir+'/'+model_name)
+    model = POLICY_TYPE.load(models_dir+'/'+model_name)
 
     for i in range(5):
         obs, info = env.reset()
@@ -76,8 +76,8 @@ if __name__ == '__main__':
     models_dir = path.cwd()/'rgym/envs/assets'
 
     env_kwargs = dict()
-    for n_dims in [3]:#[2, 3]:
-        for n_joints in [7]:#[2, 3, 4, 5, 6, 7]:
+    for n_dims in [2]:#[2, 3]:
+        for n_joints in [2]:#[2, 3, 4, 5, 6, 7]:
             models = sorted(models_dir.glob('reacher%dd%dj*.xml'%(n_dims, n_joints))) 
             for model in models:
                 model_name = model.parts[-1].replace('.xml','')
