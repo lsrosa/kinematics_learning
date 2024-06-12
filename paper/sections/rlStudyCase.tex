@@ -1,0 +1,21 @@
+\section{Reinforcement Learning Case of Study}\label{sec: rl case of study}
+
+This section presents a case of study using the forward kinematics estimation in a \gls{rl} loop, which consists of two steps.
+%
+In the fist step, we train $\nn$ and a policy $\policy:\realSet{\nDims\times\nJoints}\rightarrow\realSet{\nJoints}$, which given the Cartesian position of the robot joints, learns the torques for each joint for moving the end-effector towards the target position.
+%
+In this first step, we use random sampling for learning $\nn$, and the ground truth values from simulation for learning $\policy$.
+%
+In the second step, we create a different robot with the same number of joints, by varying its links' dimension according to a normal distribution $\normalDist{\linksLenght}{\var=0.01}$, where $\linksLenght$ is the dimensions of the robot used in the first step, and retrain both $\nn$ and $\policy$ on the new robot.
+%
+As such, $\policy$ encompasses learning the robot's dynamics, and control, which is a considerably hard task for high-dimensions.
+
+This study case mimics a straight-forward transfer-learning case, in which first a model is firstly trained in simulation, and then refined in a real robot, which is slightly different from the simulated one.
+%
+These differences may come from imprecise measures, or from an unknown model, as in the case of budget robot manipulators \cite{zajc2022low}. 
+%
+Furthermore, more elaborated transfer-learning approaches \cite{stuber2018feature,bocsi2013alignment} might also benefit from the proposed network, but its evaluation falls out-or-the-scope with this paper.
+
+The results in this section are limited to the 3D and a robot with $7$ joints, and the second part of the learning is also done in simulation. 
+%
+This limitation is due to the extensive long time necessary to tune, and learn $\policy$, and then to adapt both $\nn$ and $\policy$ to the new environment, since in the \gls{rl} loop, the reward is sparse and the robot performs a random-walk sampling.

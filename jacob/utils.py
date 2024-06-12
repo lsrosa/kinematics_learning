@@ -55,9 +55,9 @@ def create_model_variation(model_dir, n_dims, n_joints, var):
     return
 
 def create_models_variations():
-    for n_dims in [2, 3]:
-        for n_joints in [2, 3, 4, 5, 6, 7]:
-            for delta in 0.2*np.ones(5):
+    for n_dims in [3]:#[2, 3]:
+        for n_joints in [7]:#[2, 3, 4, 5, 6, 7]:
+            for delta in 0.01*np.ones(5):
                 create_model_variation('rgym/envs/assets', n_dims, n_joints, delta)
     return
 

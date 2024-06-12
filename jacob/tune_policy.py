@@ -10,12 +10,12 @@ def tune(folder):
             "--env",
             "ReacherPolicy",
             "--n-jobs",
-            "12",
+            "16",
             "-n",
-            "500",
+            "100",
             "-optimize",
             "--n-trials",
-            "500",
+            "10",
             "--pruner",
             "median",
             "--log-folder",
@@ -26,7 +26,7 @@ def tune(folder):
     return
 
 def report(folder):
-    study_pkl_path = list(path("logs/sac/").glob("*ReacherPolicy*.pkl"))[0].as_posix()
+    study_pkl_path = list(path(folder+"/sac/").glob("*ReacherPolicy*.pkl"))[0].as_posix()
     command = ["python "+
               "../../rl-baselines3-zoo/scripts/parse_study.py "+
               "-i "+
@@ -45,7 +45,7 @@ def tune_and_report(models_folder, n_dims, n_joints):
     model_files = sorted(list(path(models_folder).glob('reacher%dd%dj*.xml'%(n_dims, n_joints))))
     default_file = 'rgym/envs/assets/default.xml'
     
-    log_folder = 'policy/tunning/'
+    log_folder = 'results/policy/tunning/'
 
     # copy the model file to the default
     for model_file in model_files:
@@ -56,8 +56,8 @@ def tune_and_report(models_folder, n_dims, n_joints):
     return
 
 if __name__ == "__main__":
-    models_foder = "rgym/envs/assets/variations"
-    for n_dims in [2, 3]:
-        for n_joints in [2, 3, 4, 5, 6, 7]:    
+    models_foder = "rgym/envs/assets"
+    for n_dims in [3]:#[2, 3]:
+        for n_joints in [7]:#[2, 3, 4, 5, 6, 7]:    
             tune_and_report(models_foder, n_dims, n_joints)
     

@@ -5,8 +5,18 @@ from stable_baselines3 import PPO, SAC
 from stable_baselines3.common.env_util import make_vec_env
 
 from utils import *
+import json
 
 MODEL_TYPE = SAC
+
+net_arch = {
+        "t2": [32, 32],
+        "t3": [32, 32, 32],
+        "t4": [32, 32, 32, 32],
+        "s2": [64, 64],
+        "s3": [64, 64, 64],
+        "s4": [64, 64, 64, 64],
+    }
 
 # check device
 if torch.cuda.is_available():
@@ -50,7 +60,7 @@ def play(models_dir, env_kwargs):
     
     model = MODEL_TYPE.load(models_dir+'/'+model_name)
 
-    for i in range(10):
+    for i in range(5):
         obs, info = env.reset()
         for s in range(100):
             action, _states = model.predict(obs, deterministic=True)
@@ -61,21 +71,24 @@ def play(models_dir, env_kwargs):
 
 if __name__ == '__main__':
     learn_kwargs = dict()
-    learn_kwargs['total_timesteps'] = 1e3
-
-    sac_kwargs = dict()
-    sac_kwargs['learning_rate'] = 1e-4
-    
-    models_dir = Path.cwd()/'rgym/envs/assets/variations'
+    learn_kwargs['total_timesteps'] = 1e6
+    hyperparams_dir = path.cwd()/'results/policy/tunning/'
+    models_dir = path.cwd()/'rgym/envs/assets'
 
     env_kwargs = dict()
-    for n_dims in [2]:#[2, 3]:
-        for n_joints in [2]:#[2, 3, 4, 5, 6, 7]:
+    for n_dims in [3]:#[2, 3]:
+        for n_joints in [7]:#[2, 3, 4, 5, 6, 7]:
             models = sorted(models_dir.glob('reacher%dd%dj*.xml'%(n_dims, n_joints))) 
             for model in models:
-                env_kwargs['n_joints'] = n_joints 
-                env_kwargs['n_dims'] = n_dims 
+                model_name = model.parts[-1].replace('.xml','')
+                with open(hyperparams_dir/model_name/'hyperparameters_1.json') as f:
+                    sac_kwargs = json.load(f)
+                    sac_kwargs['policy_kwargs'] = dict()
+                    sac_kwargs['policy_kwargs']['log_std_init'] = sac_kwargs.pop('log_std_init')
+                    sac_kwargs['policy_kwargs']['net_arch'] = net_arch[sac_kwargs.pop('net_arch')]
+                    sac_kwargs['policy_kwargs']['use_sde'] = False 
+                print('Loaded SAC parameters: ', sac_kwargs)
                 env_kwargs['model_file'] = model
-                learn('policy', 'policy', 'policy', env_kwargs, sac_kwargs, learn_kwargs, refine=False, device=device)
+                learn('results/policy', 'results/policy', 'results/policy', env_kwargs, sac_kwargs, learn_kwargs, refine=True, device=device)
                 continue
-    play('policy', env_kwargs)
+    play('results/policy', env_kwargs)
