@@ -234,11 +234,11 @@ if __name__ == '__main__':
     learn_kwargs = dict()
     learn_kwargs['seed'] = 1
     learn_kwargs['n_rollouts'] = 100
-    learn_kwargs['learn_steps'] = 10 
+    learn_kwargs['learn_steps'] = 500 
     learn_kwargs['n_envs'] = 32 
     learn_kwargs['batch_size'] = 20#100 
     learn_kwargs['n_iter'] = 50
-    learn_kwargs['append'] = True 
+    learn_kwargs['append'] = False 
 
     model_kwargs['model'] = 'FKineLinked'
     learn('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs, learn_kwargs, device=device)
