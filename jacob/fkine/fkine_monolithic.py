@@ -45,7 +45,7 @@ class FKineMono(nn.Module):
         ret = (y_pred-y).norm(dim=1).mean()
         return ret
 
-    def train(self, q, y):
+    def train_from_data(self, q, y):
         y_pred = self.forward(q)
         loss = self.loss_fkine(y_pred, y)
         mean_loss = loss.cpu().detach().numpy()

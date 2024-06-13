@@ -88,7 +88,7 @@ class LearnCB(BaseCallback):
             y = x.to(self.device)
 
             if self.fkine != None:
-                loss += self.fkine.train(q, y)
+                loss += self.fkine.train_from_data(q, y)
             
         if self.fkine != None:
             loss /= n_iter

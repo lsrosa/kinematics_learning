@@ -61,7 +61,6 @@ class FKineLinked(nn.Module):
         # instantiate
         for j in range(n_joints):
             self._modules['fkine%d'%j] = FKine1(n_dims, self.n_hidden_layers, lr, activation, initializer, self.device) 
-
         # DH transformations are always 4x4
         self._t0 = torch.eye(4).to(device)
         
@@ -101,7 +100,7 @@ class FKineLinked(nn.Module):
         ret = l_det + l_identity
         return ret
 
-    def train(self, q, y):
+    def train_from_data(self, q, y):
         y_pred, t = self.forward(q)
         l_kine = self.loss_fkine(y_pred, y)
         l_rot = self.loss_rot_matrix(t)

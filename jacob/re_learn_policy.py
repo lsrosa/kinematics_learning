@@ -23,17 +23,20 @@ net_arch = {
     }
 
 class FKineWrap(CombinedExtractor):
-    def __init__(self, to_observation_space, from_observation_space, fkine):
-        print(to_observation_space)
+    def __init__(self, from_observation_space, to_observation_space, fkine):
+        print('from os:', from_observation_space)
+        print('  to os:', to_observation_space)
         super().__init__(to_observation_space)
         self.fkine = fkine 
         return
 
     def forward(self, observations):
         out = dict()
+        print('\nobservations: ', observations)
         out['x'], _ = self.fkine(observations['q'])
         out['xdot'] = observations['xdot']
         out['goal'] = observations['goal']
+        print('\ntransformed: ', out)
         return super().forward(out) 
 
 # check device
