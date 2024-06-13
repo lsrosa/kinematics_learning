@@ -1,5 +1,6 @@
 import torch 
 import torch.nn as nn
+from collections import OrderedDict
 
 class FKine1(nn.Module):
     def __init__(self, n_dims, n_hidden_layers, lr, activation, initializer, device):
@@ -30,12 +31,8 @@ class FKine1(nn.Module):
             if isinstance(l, nn.Linear):
                 initializer(l.weight)
                 l.bias.data.fill_(0.0)
-
         return
-    
-    def parameters(self):
-        return list(self.fkine.parameters()) 
-    
+
     def forward(self, theta, t_prev):
         n_samples = len(theta)
         _q = torch.hstack((theta, torch.cos(theta), torch.sin(theta)))
@@ -51,52 +48,27 @@ class FKine1(nn.Module):
         # multiply with previous transforms
         t_out = torch.matmul(t_prev, t)
         return t_out, t 
-    
-    def state_dict(self):
-        sd = dict()
-        sd['fkine'] = self.fkine.state_dict()
-        return sd
-
-    def load_state_dict(self, state_dict):
-        self.fkine.load_state_dict(state_dict['fkine'])
-        return
 
 class FKineLinked(nn.Module):
     def __init__(self, n_joints, n_dims, n_hidden, size_hidden, lr=1e-4, activation = nn.Tanh, initializer = nn.init.xavier_uniform_, device = 'cpu', model=None):
         super(FKineLinked, self).__init__()
-        
         # save these for later use
         self.device = device
         self.n_joints = n_joints
         self.n_dims = n_dims
         self.n_hidden_layers = [size_hidden for h in range(n_hidden)]
         
-        # instantiate and set params
-        self.fkines = []
-        self._params = []
+        # instantiate
         for j in range(n_joints):
-            self.fkines.append(FKine1(n_dims, self.n_hidden_layers, lr, activation, initializer, self.device)) 
-            self._params += self.fkines[-1].parameters()
-            self.fkines[-1].to(self.device)
+            self._modules['fkine%d'%j] = FKine1(n_dims, self.n_hidden_layers, lr, activation, initializer, self.device) 
 
         # DH transformations are always 4x4
         self._t0 = torch.eye(4).to(device)
         
         # optimizer
-        self._optim = torch.optim.SGD(self._params, lr=lr)
+        self._optim = torch.optim.SGD(self.parameters(), lr=lr)
         return
-
-    def state_dict(self):
-        sd = dict()
-        for i, j in enumerate(self.fkines):
-            sd['fkine_j%d'%i] = j.state_dict()
-        return sd
-
-    def load_state_dict(self, state_dict):
-        for i, j in enumerate(self.fkines):
-            j.load_state_dict(state_dict['fkine_j%d'%i])
-        return
-
+    
     def forward(self, q):
         if len(q.shape) == 1:
             q = q.reshape(1, len(q))
@@ -109,7 +81,7 @@ class FKineLinked(nn.Module):
         t_prev = self._t0.repeat(n_samples, 1, 1)
         for j in range(n_joints):
             _q = q[:,j].reshape(-1,1)
-            t_prev, t[:, j, :, :] = self.fkines[j](_q, t_prev)
+            t_prev, t[:, j, :, :] = self._modules['fkine%d'%j](_q, t_prev)
             _y = t_prev[:,:3, 3]
             y[:, :, j] = _y[:,:self.n_dims]
         return y, t 

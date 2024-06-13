@@ -22,20 +22,19 @@ net_arch = {
         "s4": [64, 64, 64, 64],
     }
 
-class FKineWrap(BaseFeaturesExtractor):
-    def __init__(self, observation_space, features_dim):
-        super().__init__(fkine, from_observation_space, to_observation_space)
+class FKineWrap(CombinedExtractor):
+    def __init__(self, to_observation_space, from_observation_space, fkine):
+        print(to_observation_space)
+        super().__init__(to_observation_space)
         self.fkine = fkine 
-        self.combine = CombinedExtractor(to_observation_space)
         return
 
     def forward(self, observations):
         out = dict()
-        out['x'] = self.fkine(observations['q'])
+        out['x'], _ = self.fkine(observations['q'])
         out['xdot'] = observations['xdot']
         out['goal'] = observations['goal']
-        return self.flatten(out) 
-
+        return super().forward(out) 
 
 # check device
 if torch.cuda.is_available():
@@ -71,18 +70,13 @@ def re_learn(models_dir, results_dir, plots_dir, env_kwargs, sac_kwargs, learn_k
             fkine_kwargs = json.load(f)
         fkine_model = eval(fkine_kwargs.pop('model'))(**fkine_kwargs, device=device) 
 
-        _n_features = 1
-        for key in _env.observation_space.keys():
-            for _l in _env.observation_space[key].shape:
-                _n_features *= _l
-        
+        print('loading policy model')
+        sac_model = POLICY_TYPE.load(sac_model_file, env=_env, **sac_kwargs)
         sac_kwargs['policy_kwargs'] =  {'features_extractor_class': FKineWrap,
                                         'features_extractor_kwargs': {'fkine' : fkine_model,
                                             'from_observation_space' : env.observation_space,
                                             'to_observation_space' : _env.observation_space}
                 }
-        print('loading policy model')
-        sac_model = POLICY_TYPE.load(sac_model_file, env=_env, **sac_kwargs)
         sac_model.env = env
         print(sac_model.policy.features_extractor) 
         break 

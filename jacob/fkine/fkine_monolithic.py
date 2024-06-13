@@ -1,5 +1,6 @@
 import torch 
 import torch.nn as nn
+from collections import OrderedDict
 
 class FKineMono(nn.Module):
     def __init__(self, n_joints, n_dims, n_hidden, size_hidden, lr=1e-4, activation = nn.Tanh, initializer = nn.init.xavier_uniform_, device = 'cpu', model=None):
@@ -26,21 +27,9 @@ class FKineMono(nn.Module):
                 initializer(l.weight)
                 l.bias.data.fill_(0.0)
         
-        self.params = self.fkine.parameters()
         # optimizer
-        self._optim = torch.optim.SGD(self.params, lr=lr)
+        self._optim = torch.optim.SGD(self.parameters(), lr=lr)
 
-        return
-    
-    def parameters(self):
-        return list(self.fkine.parameters())
-
-    def state_dict(self):
-        sd = self.fkine.state_dict()
-        return sd
-
-    def load_state_dict(self, state_dict):
-        self.fkine.load_state_dict(state_dict)
         return
     
     def forward(self, q):
