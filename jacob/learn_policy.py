@@ -39,7 +39,7 @@ def learn(models_dir, results_dir, plots_dir, env_kwargs, sac_kwargs, learn_kwar
 
     if os.path.exists(models_dir+'/'+model_name+".zip") and refine:
         print('Loading existing model')
-        model = POLICY_TYPE.load(models_dir+'/'+model_name, env=env, **sac_kwargs)
+        model = POLICY_TYPE.load(models_dir+'/'+model_name, env=env, verbose=1)
         prev_timesteps = model._total_timesteps 
     else:
         print('Creating new model')
