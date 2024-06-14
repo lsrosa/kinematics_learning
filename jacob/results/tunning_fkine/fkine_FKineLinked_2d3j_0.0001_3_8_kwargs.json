@@ -1,0 +1,1 @@
+{"model": "FKineLinked", "lr": 0.0001, "n_hidden": 3, "size_hidden": 8, "n_joints": 3, "n_dims": 2}

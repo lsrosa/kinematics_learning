@@ -1,0 +1,1 @@
+{"model": "FKineMono", "lr": 0.0001, "n_hidden": 5, "size_hidden": 8, "n_joints": 4, "n_dims": 3}
