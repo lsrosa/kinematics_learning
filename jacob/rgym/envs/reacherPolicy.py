@@ -20,13 +20,23 @@ class ReacherPolicy(gym.Wrapper):
         gym.Wrapper.__init__(self, env)
         
         self.observation_space = gym.spaces.Dict({
+            'q': Box(low=-np.inf, high=np.inf, shape=(self.unwrapped.n_joints,), dtype=np.float64),
+            'xdot': Box(low=-np.inf, high=np.inf, shape=(self.unwrapped.n_dims,self.unwrapped.n_joints), dtype=np.float64),
+            'goal': Box(low=-np.inf, high=np.inf, shape=(self.unwrapped.n_dims,), dtype=np.float64)
+            })
+
+        self.policy_observation_space = gym.spaces.Dict({
             'x': Box(low=-np.inf, high=np.inf, shape=(self.unwrapped.n_dims,self.unwrapped.n_joints), dtype=np.float64),
             'xdot': Box(low=-np.inf, high=np.inf, shape=(self.unwrapped.n_dims,self.unwrapped.n_joints), dtype=np.float64),
             'goal': Box(low=-np.inf, high=np.inf, shape=(self.unwrapped.n_dims,), dtype=np.float64)
             })
+
+
+
         
         self.action_space = gym.spaces.Box(low=0, high=1, shape=(self.unwrapped.n_joints,), dtype=np.float64)
         
+        self.current_obs_x = None
         self.x_prev = None
         self.current_reward = None
         self.current_info = None
@@ -39,15 +49,15 @@ class ReacherPolicy(gym.Wrapper):
         ):   #-> tuple[ObsType, SupportsFloat, bool, bool, dict[str, Any]]:
         
         #actions in the environment are [-1, 1], however the learner outputs between [0, 1]
-        action = 2*action-1
+        #action = 2*action-1
         
         observation, reward, terminated, truncated, info = self.env.step(action)
         self.current_reward, self.current_info = self.reward(observation)
         
         # save current x value for the next velocity computation
         self.compute_observation()
-        self.x_prev = self.current_obs['x']
-        
+        self.x_prev = self.current_obs_x
+
         return self.current_obs, self.current_reward, self.current_info['goal_achieved'], truncated, self.current_info 
 
     def reset(self, **kwargs):
@@ -61,7 +71,6 @@ class ReacherPolicy(gym.Wrapper):
         self.x_prev = _x 
         
         self.compute_observation()
-
         return self.get_observation(), info
 
     def get_observation(self) -> WrapperObsType:
@@ -79,7 +88,8 @@ class ReacherPolicy(gym.Wrapper):
 
         xdot = (_x - self.x_prev)/self.unwrapped.dt
 
-        self.current_obs = {'x': _x, 'xdot': xdot, 'goal':self.unwrapped.goal}
+        self.current_obs = {'q': q, 'xdot': xdot, 'goal':self.unwrapped.goal}
+        self.current_obs_x = _x
         return self.current_obs 
 
     def get_reward(self):

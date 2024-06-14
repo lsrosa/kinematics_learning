@@ -1,5 +1,6 @@
 import sys
 import os
+import json
 from pathlib import Path as path
 from rl_zoo3.train import train
 
@@ -12,10 +13,10 @@ def tune(folder):
             "--n-jobs",
             "16",
             "-n",
-            "1000",
+            "100",
             "-optimize",
             "--n-trials",
-            "100",
+            "10",
             "--pruner",
             "median",
             "--log-folder",
@@ -41,23 +42,38 @@ def report(folder):
     os.system(command)
     return
 
-def tune_and_report(models_folder, n_dims, n_joints):
+def tune_and_report(models_folder, fkine_models_folder, n_dims, n_joints):
     model_files = sorted(list(path(models_folder).glob('reacher%dd%dj*.xml'%(n_dims, n_joints))))
-    default_file = 'rgym/envs/assets/default.xml'
+    default_model_file = 'rgym/envs/assets/default.xml'
+    default_fkine_model_file = fkine_models_folder+'/default_model.pt'
+    default_fkine_kwargs_file = fkine_models_folder+'/default_kwargs.json'
     
     log_folder = 'results/policy/tunning/'
 
     # copy the model file to the default
     for model_file in model_files:
-        os.system("cp %s %s"%(model_file.as_posix(), default_file))
-        results_folder = model_file.parts[-1].replace('.xml', '')
-        tune(log_folder+results_folder)
-        report(log_folder+results_folder)
+        os.system("cp %s %s"%(model_file.as_posix(), default_model_file))
+        model_name = model_file.parts[-1].replace('.xml', '')
+        
+        # search for fkine model and kwargs for model_name
+        fkine_model_files = sorted(list(path(fkine_models_folder).glob('*%s*.pt'%model_name.replace('reacher',''))))
+        fkine_kwargs_files = sorted(list(path(fkine_models_folder).glob('*%s*.json'%model_name.replace('reacher',''))))
+        for fkine_model_file, fkine_kwargs_file in zip(fkine_model_files, fkine_kwargs_files):
+            print(fkine_model_file)
+            print(fkine_kwargs_file)
+            os.system("cp %s %s"%(fkine_model_file, default_fkine_model_file))
+            os.system("cp %s %s"%(fkine_kwargs_file, default_fkine_kwargs_file))
+            with open(default_fkine_kwargs_file, 'r') as f:
+                fkine_kwargs = json.load(f)
+                print(fkine_kwargs['model'])
+            tune(log_folder+model_name+fkine_kwargs['model'])
+            report(log_folder+model_name+fkine_kwargs['model'])
     return
 
 if __name__ == "__main__":
     models_foder = "rgym/envs/assets"
+    fkine_models_folder = "results/fkine_models"
     for n_dims in [2]:#[2, 3]:
         for n_joints in [2]:#[2, 3, 4, 5, 6, 7]:    
-            tune_and_report(models_foder, n_dims, n_joints)
+            tune_and_report(models_foder, fkine_models_folder, n_dims, n_joints)
     

@@ -14,21 +14,19 @@ from rgym.envs.ex_reacher_v0 import ExReacherEnv
 
 import os
 
-class ReacherRePolicy(gym.Wrapper):
+class ReacherPolicy(gym.Wrapper):
     def __init__(self, env: gym.Env[ObsType, ActType]):
         """Constructor for the observation wrapper."""
         gym.Wrapper.__init__(self, env)
         
         self.observation_space = gym.spaces.Dict({
-            'q': Box(low=-np.inf, high=np.inf, shape=(self.unwrapped.n_joints,), dtype=np.float64),
-            #'x': Box(low=-np.inf, high=np.inf, shape=(self.unwrapped.n_dims,self.unwrapped.n_joints), dtype=np.float64),
+            'x': Box(low=-np.inf, high=np.inf, shape=(self.unwrapped.n_dims,self.unwrapped.n_joints), dtype=np.float64),
             'xdot': Box(low=-np.inf, high=np.inf, shape=(self.unwrapped.n_dims,self.unwrapped.n_joints), dtype=np.float64),
             'goal': Box(low=-np.inf, high=np.inf, shape=(self.unwrapped.n_dims,), dtype=np.float64)
             })
         
         self.action_space = gym.spaces.Box(low=0, high=1, shape=(self.unwrapped.n_joints,), dtype=np.float64)
         
-        self.current_obs_x = None
         self.x_prev = None
         self.current_reward = None
         self.current_info = None
@@ -48,8 +46,8 @@ class ReacherRePolicy(gym.Wrapper):
         
         # save current x value for the next velocity computation
         self.compute_observation()
-        self.x_prev = self.current_obs_x
-
+        self.x_prev = self.current_obs['x']
+        
         return self.current_obs, self.current_reward, self.current_info['goal_achieved'], truncated, self.current_info 
 
     def reset(self, **kwargs):
@@ -63,6 +61,7 @@ class ReacherRePolicy(gym.Wrapper):
         self.x_prev = _x 
         
         self.compute_observation()
+
         return self.get_observation(), info
 
     def get_observation(self) -> WrapperObsType:
@@ -80,8 +79,7 @@ class ReacherRePolicy(gym.Wrapper):
 
         xdot = (_x - self.x_prev)/self.unwrapped.dt
 
-        self.current_obs = {'q': q, 'xdot': xdot, 'goal':self.unwrapped.goal}
-        self.current_obs_x = _x
+        self.current_obs = {'x': _x, 'xdot': xdot, 'goal':self.unwrapped.goal}
         return self.current_obs 
 
     def get_reward(self):
@@ -103,14 +101,14 @@ class ReacherRePolicy(gym.Wrapper):
     
 from gymnasium.envs.registration import register
 
-def reacherrepolicy(**args):
+def reacherpolicy(**args):
     env = gym.make("Ex-Reacher-v0", **args)
-    env = ReacherRePolicy(env)
+    env = ReacherPolicy(env)
     return env
 
 register(
-     id="ReacherRePolicy",
-     entry_point="rgym.envs.reacherRePolicy:reacherrepolicy",
+     id="ReacherPolicy",
+     entry_point="rgym.envs.reacherPolicy:reacherpolicy",
      max_episode_steps=50,
 )
 
