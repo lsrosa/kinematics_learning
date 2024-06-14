@@ -2,7 +2,7 @@ import sys
 import os
 import json
 from pathlib import Path as path
-from rl_zoo3.train import train
+from rl_zoo3.train_sac_fe import train_sac_fe
 
 def tune(folder):
     sys.argv = ["python",
@@ -23,7 +23,7 @@ def tune(folder):
             folder
             ]
 
-    train()
+    train_sac_fe()
     return
 
 def report(folder):
