@@ -6,7 +6,7 @@ from stable_baselines3.common.env_util import make_vec_env
 
 from fkine.fkine_linked import FKineLinked
 from fkine.fkine_monolithic import FKineMono
-from policy.wraps import FKineLinkedWrap, FKineMonoWrap
+from policy.wraps import FKineWrap
 
 from utils import *
 import json
@@ -31,31 +31,19 @@ else:
     device = 'cpu'
     print("Using CPU")
 
-def learn(models_dir, results_dir, plots_dir, env_kwargs, fkine_kwargs, sac_kwargs, learn_kwargs, refine=False, n_envs=32, device='cpu', verbose=0):
+def learn(models_dir, results_dir, plots_dir, env_kwargs, sac_kwargs, learn_kwargs, refine=False, n_envs=32, device='cpu', verbose=0):
     make_dirs([models_dir, results_dir, plots_dir])
     model_name = env_kwargs['model_file'].parts[-1].replace('.xml','')
     print('Env model: ', env_kwargs['model_file']) 
     
     env = make_vec_env("ReacherPolicy", env_kwargs=env_kwargs, n_envs=n_envs)
     
-    # load fkine model
-    fkine_model_name = fkine_kwargs.pop('model') 
-    fkine_model_file = fkine_kwargs.pop('model_file')
-    fkine_model = eval(fkine_model_name)(**fkine_kwargs, device=device) 
-    fkine_model.load_state_dict(torch.load(fkine_model_file))
-
-    sac_model_name = model_name + fkine_model_name 
+    sac_model_name = model_name + sac_kwargs.pop('fkine_model_name')
     sac_model_file = models_dir+'/policy/%s.zip'%sac_model_name
     print(sac_model_file, sac_model_name)
     if os.path.exists(sac_model_file) and not refine:
         print('sac model exist, no training')
         return
-
-    sac_kwargs['policy_kwargs']['features_extractor_class'] = eval(fkine_model_name+'Wrap')
-    sac_kwargs['policy_kwargs']['features_extractor_kwargs'] = {
-            'fkine': fkine_model,
-            'to_observation_space': env.envs[0].policy_observation_space
-            }
 
     if os.path.exists(sac_model_file) and refine:
         print('Loading existing policy model')
@@ -112,19 +100,28 @@ if __name__ == '__main__':
                 for fkine_model_file, fkine_kwargs_file in zip(fkine_model_files, fkine_kwargs_files):
                     # load the pre-trained fkine
                     print('fkine model file: ', fkine_model_file)
+                    print('fkine kwargs file: ', fkine_kwargs_file)
                     with open(fkine_kwargs_file, 'r') as f:
                         fkine_kwargs = json.load(f)
-                    fkine_kwargs['model_file'] = fkine_model_file 
-
-                    with open(sac_hyperparams_dir/(model_name+fkine_kwargs['model'])/'hyperparameters_1.json') as f:
+                    
+                    fkine_model_name = fkine_kwargs['model']
+                    with open(sac_hyperparams_dir/(model_name+fkine_model_name)/'hyperparameters_1.json') as f:
                         sac_kwargs = json.load(f)
                         sac_kwargs['policy_kwargs'] = dict()
                         sac_kwargs['policy_kwargs']['log_std_init'] = sac_kwargs.pop('log_std_init')
                         sac_kwargs['policy_kwargs']['net_arch'] = net_arch[sac_kwargs.pop('net_arch')]
                         sac_kwargs['policy_kwargs']['use_sde'] = False 
+                        sac_kwargs['fkine_model_name'] = fkine_model_name 
+                        sac_kwargs['policy_kwargs']['features_extractor_class'] = FKineWrap
+                        sac_kwargs['policy_kwargs']['features_extractor_kwargs'] = {
+                                'fkine_model_file': fkine_model_file,
+                                'fkine_kwargs_file': fkine_kwargs_file,
+                                'device': device,
+                                'freeze': True
+                                } 
                     print('Loaded SAC parameters: ', sac_kwargs)
                     env_kwargs['model_file'] = model
                     
-                    learn('results', 'results/policy', 'results/policy', env_kwargs, fkine_kwargs, sac_kwargs, learn_kwargs, refine=True, device=device, verbose=True)
+                    learn('results', 'results/policy', 'results/policy', env_kwargs, sac_kwargs, learn_kwargs, refine=True, device=device, verbose=False)
                 continue
     #play('results/policy', env_kwargs)

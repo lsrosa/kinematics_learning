@@ -3,6 +3,16 @@ import os
 import json
 from pathlib import Path as path
 from rl_zoo3.train_sac_fe import train_sac_fe
+import torch
+
+# check device
+if torch.cuda.is_available():
+    device = torch.device(torch.cuda.current_device()) 
+    device_name = torch.cuda.get_device_name()
+    print("Using GPU %s" %device_name)
+else:
+    device = 'cpu'
+    print("Using CPU")
 
 def tune(folder):
     sys.argv = ["python",
@@ -20,7 +30,9 @@ def tune(folder):
             "--pruner",
             "median",
             "--log-folder",
-            folder
+            folder,
+            "--device",
+            str(device),
             ]
 
     train_sac_fe()
@@ -65,7 +77,7 @@ def tune_and_report(models_folder, fkine_models_folder, n_dims, n_joints):
             os.system("cp %s %s"%(fkine_kwargs_file, default_fkine_kwargs_file))
             with open(default_fkine_kwargs_file, 'r') as f:
                 fkine_kwargs = json.load(f)
-                print(fkine_kwargs['model'])
+                print('fkine model: ', fkine_kwargs['model'])
             tune(log_folder+model_name+fkine_kwargs['model'])
             report(log_folder+model_name+fkine_kwargs['model'])
     return

@@ -25,15 +25,6 @@ class ReacherPolicy(gym.Wrapper):
             'goal': Box(low=-np.inf, high=np.inf, shape=(self.unwrapped.n_dims,), dtype=np.float64)
             })
 
-        self.policy_observation_space = gym.spaces.Dict({
-            'x': Box(low=-np.inf, high=np.inf, shape=(self.unwrapped.n_dims,self.unwrapped.n_joints), dtype=np.float64),
-            'xdot': Box(low=-np.inf, high=np.inf, shape=(self.unwrapped.n_dims,self.unwrapped.n_joints), dtype=np.float64),
-            'goal': Box(low=-np.inf, high=np.inf, shape=(self.unwrapped.n_dims,), dtype=np.float64)
-            })
-
-
-
-        
         self.action_space = gym.spaces.Box(low=0, high=1, shape=(self.unwrapped.n_joints,), dtype=np.float64)
         
         self.current_obs_x = None
@@ -117,8 +108,8 @@ def reacherpolicy(**args):
     return env
 
 register(
-     id="ReacherPolicy",
-     entry_point="rgym.envs.reacherPolicy:reacherpolicy",
-     max_episode_steps=50,
-)
+    id="ReacherPolicy",
+    entry_point="rgym.envs.reacherPolicy:reacherpolicy",
+    max_episode_steps=50,
+    )
 
