@@ -2,7 +2,7 @@
 
 \subsection{Testing Environment}\label{subsec: test env}
 
-We build upon the \texttt{Reacher} environment from OpenAI Gym \cite{gym}, which consists of a 2D serial manipulator with $2$ joints simulated using MuJoCo \cite{todorov2012mujoco}.
+We build upon the \texttt{Reacher-v4} environment from OpenAI Gym \cite{gym}, which consists of a 2D serial manipulator with $2$ joints simulated using MuJoCo \cite{todorov2012mujoco}.
 %
 In order to evaluate the proposed approach for more realistic robots, we extend the environment enabling for 3D, and adding models for robots up to $7$ joints\footnote{Publicly available source code: \href{https://github.com/lsrosa/kinematics\_learning}{https://github.com/lsrosa/kinematics\_learning}}.
 
@@ -14,32 +14,36 @@ While other approximators could be used, e.g., \glspl{gp} as in \cite{dalla2020a
 
 In order to assure appropriate hyper-parameters for $\nn$, we perform a tuning for each model, which results in the values presented in Table \ref{tab: tune fkine}, where $lr$ is the learning rate, and \texttt{arch} is an array containing the number of elements neurons in each \gls{nn} layer. 
 %
-For the learning hyper-parameter of Algorithm \ref{alg: train nn}, we found that $nSamples=1e^3$, $epochs=500$, $nIterations=50$, $batchSize=100$ are adequate values for all networks.
+For the learning hyper-parameter of Algorithm \ref{alg: train nn}, we found that $nSamples=10^3$, $epochs=500$, $nIterations=50$, $batchSize=100$ are adequate values for all networks.
 
 \begin{table}
 	\centering
 	\begin{tabulary}{\linewidth}{c|c|c|c|c|c|c|c}
 		\toprule
-		\multicolumn{8}{c}{$\nDims=2$} \\\hline
-		$\nJoints$ & 1 & 2 & 3 & 4 & 5 & 6 & 7 \\\midrule
-		$lr$ & & & & & & & \\\hline
-		$\nnMono$ \texttt{arch} & & & & & & & \\
+		\multicolumn{7}{c}{$\nDims=2$} \\\hline
+		\multicolumn{2}{c}{$\nJoints$} & $2$ & $3$ & $4$ & $5$ & $6$ & $7$ \\\midrule
+		\multirow{3}{*}{$\nnMono$} & $lr$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ \\\cline{2-8}
+		& \texttt{n\_l} & $4$ & $4$ & $5$ & $5$ & $5$ & $5$ \\\cline{2-8}
+		& \texttt{l\_s} & $16$ & $32$ & $32$ & $32$ & $32$ & $32$ \\
 		\midrule
 		\multicolumn{8}{c}{$\nDims=3$} \\\hline
-		$lr$ & & & & & & & \\\hline
-		$\nnMono$ \texttt{arch} & & & & & & & \\
+		\multirow{3}{*}{$\nnMono$} & $lr$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ \\\cline{2-8}
+		& \texttt{n\_l} & $4$ & $5$ & $5$ & $5$ & $5$ & $5$ \\\cline{2-8}
+		& \texttt{l\_s} & $32$ & $32$ & $32$ & $32$ & $32$ & $32$  \\
 		\midrule
 		\midrule
 		\multicolumn{8}{c}{$\nDims=2$} \\\hline
-		$lr$ & & & & & & & \\\hline
-		$\nnLink$ \texttt{arch} & & & & & & & \\
+		\multirow{3}{*}{$\nnLink$} & $lr$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ \\\cline{2-8}
+		& \texttt{n\_l} & $3$ & $4$ & $5$ & $5$ & $5$ & $5$  \\\cline{2-8}
+		& \texttt{l\_s} & $32$ & $32$ & $32$ &  $32$ & $32$ & $32$\\
 		\midrule
 		\multicolumn{8}{c}{$\nDims=3$} \\\hline
-		$lr$ & & & & & & & \\\hline
-		$\nnLink$ \texttt{arch} & & & & & & & \\
+		\multirow{3}{*}{$\nnLink$} & $lr$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$  \\\cline{2-8}
+		& \texttt{n\_l} & $5$ & $5$ & $5$ & $5$ & $5$ & $5$  \\\cline{2-8}
+		& \texttt{l\_s} & $32$ & $32$ & $32$ & $32$ & $32$ & $32$  \\
 		\bottomrule
 	\end{tabulary}
-	\caption{Tuning parameters for 2D and 3D robots with varying number of joints.}
+	\caption{Parameters for 2D and 3D robots with varying number of joints. The policies $\nn$ are feed-forward \glspl{nn} with \texttt{n\_l} layers, each containing \texttt{l\_s} neurons. Each layer, except from the last, is followed by a \texttt{TanH} activation layer. \rev{check this weird font}}
 	\label{tab: tune fkine}
 \end{table}
 

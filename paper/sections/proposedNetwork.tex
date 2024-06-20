@@ -58,7 +58,7 @@ For each epoch of training, $nSamples$ random poses are sampled in joint space (
 %
 The memory size is limited, and upon additions further than its limit, it drops a percentage of its oldest data (we use a $10\%$ data drop in all experiments) for reducing data allocation overheads.
 %
-Next, $nIterations$ of training is done with the data already within the memory, which are done by randomly sampling $batchSize$ samples from the memory (line $8$), computing the average loss (lines $9$ to $13$), which is then back-propagated through the network (line $14$).
+Next, $nIterations$ of training is done with the data already within the memory, which are done by randomly sampling $batchSize$ samples from the memory (line $8$), computing the average loss (lines $9$ to $14$), which is then back-propagated through the network (line $15$).
  
 \begin{algorithm}
 	\caption{Training procedure for $\nn$.}\label{alg: train nn}
@@ -73,11 +73,11 @@ Next, $nIterations$ of training is done with the data already within the memory,
 			$(qs, xs)\leftarrow$ get $batchSize$ random samples from $memory$\; 
 			$meanLoss\leftarrow0$\;
 			\For{$(q, x) \in (qs, xs)$}{
-				$meanLoss\leftarrow acc+\loss$\;
+				$meanLoss\leftarrow meanLoss+\loss$\;
 			}
-			$meanLoss\leftarrow acc/batchSize$\;
-			backpropagate $meanLoss$ through $\nn$\; 
 		}
+		$meanLoss\leftarrow meanLoss/batchSize$\;
+		backpropagate $meanLoss$ through $\nn$\; 
 	}
 \end{algorithm}
 
