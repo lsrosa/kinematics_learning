@@ -38,7 +38,7 @@ class FKineWrap(CombinedExtractor):
             fkine_model_file = kwargs['fkine_model_file']
         else:
             fkine_model_file = path.cwd()/'results/fkine_models/default_model.pt'
-        self.fkine.load_state_dict(torch.load(fkine_model_file))
+        self.fkine.load_state_dict(torch.load(fkine_model_file, map_location=torch.device(device)))
         
         self.forward = eval('self.forward%s'%fkine_model_name)
         return
