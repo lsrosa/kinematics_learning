@@ -26,7 +26,7 @@ def tune(folder):
             "50000",
             "-optimize",
             "--n-trials",
-            "100",
+            "30",
             "--pruner",
             "median",
             "--log-folder",
