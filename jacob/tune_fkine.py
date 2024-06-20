@@ -30,12 +30,15 @@ if __name__ == '__main__':
     learn_kwargs['append'] = False 
     
     out_dir = 'results/tunning_fkine'
+    total = 2*2*3*3*2*7
+    curr = 1
     for model in ['FKineLinked', 'FKineMono']:
         for lr in [1e-4, 1e-5]:
             for nh in [3, 4, 5]:
                 for sh in [8, 16, 32]:
                     for n_dims in [2, 3]:
                         for n_joints in [2, 3, 4, 5, 6, 7]:
+                            print('curr: %d, out of %d'%(curr, total))
                             model_kwargs = dict()
                             model_kwargs['model'] = model 
                             model_kwargs['lr'] = lr
@@ -45,3 +48,4 @@ if __name__ == '__main__':
                             model_kwargs['n_dims'] = n_dims 
 
                             learn(out_dir, out_dir, out_dir, model_kwargs, learn_kwargs, device=device) 
+                            curr += 1
