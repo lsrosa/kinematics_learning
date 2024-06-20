@@ -27,17 +27,17 @@ if __name__ == '__main__':
     learn_kwargs['n_envs'] = 32 
     learn_kwargs['batch_size'] = 100 
     learn_kwargs['n_iter'] = 25 
-    learn_kwargs['append'] = False 
+    learn_kwargs['append'] = True 
     
     out_dir = 'results/tunning_fkine'
     total = 2*2*3*3*2*7
     curr = 1
     for model in ['FKineLinked', 'FKineMono']:
-        for lr in [1e-4, 1e-5]:
-            for nh in [3, 4, 5]:
-                for sh in [8, 16, 32]:
-                    for n_dims in [2, 3]:
-                        for n_joints in [2, 3, 4, 5, 6, 7]:
+        for lr in [1e-4]:#, 1e-5]:
+            for nh in [3]:#, 4, 5]:
+                for sh in [8]:#, 16, 32]:
+                    for n_dims in [2]:#, 3]:
+                        for n_joints in [2]:#, 3, 4, 5, 6, 7]:
                             print('curr: %d, out of %d'%(curr, total))
                             model_kwargs = dict()
                             model_kwargs['model'] = model 
