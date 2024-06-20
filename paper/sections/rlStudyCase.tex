@@ -2,9 +2,7 @@
 
 This section presents a case of study using the forward kinematics estimation in a \gls{rl} loop, which consists of two steps.
 %
-In the fist step, we train $\nn$ and a policy $\policy:\realSet{\nDims\times\nJoints}\rightarrow\realSet{\nJoints}$, which given the Cartesian position of the robot joints, learns the torques for each joint for moving the end-effector towards the target position.
-%
-In this first step, we use random sampling for learning $\nn$, and the ground truth values from simulation for learning $\policy$.
+In the fist step, we train $\nn$ and a policy $\policy:\realSet{\nDims\times\nJoints}\rightarrow\realSet{\nJoints}$, which given the Cartesian position of the robot joints, learns the torques for each joint for moving the end-effector towards the target position, using the pre-trained $\nn$ model learned in Section \ref{sec: results} for estimating $\vector{\pos} = \nn(\vector{\rotAngle{}})$.
 %
 In the second step, we create a different robot with the same number of joints, by varying its links' dimension according to a normal distribution $\normalDist{\linksLenght}{\var=0.01}$, where $\linksLenght$ is the dimensions of the robot used in the first step, and retrain both $\nn$ and $\policy$ on the new robot.
 %
@@ -19,3 +17,19 @@ Furthermore, more elaborated transfer-learning approaches \cite{stuber2018featur
 The results in this section are limited to the 3D and a robot with $7$ joints, and the second part of the learning is also done in simulation. 
 %
 This limitation is due to the extensive long time necessary to tune, and learn $\policy$, and then to adapt both $\nn$ and $\policy$ to the new environment, since in the \gls{rl} loop, the reward is sparse and the robot performs a random-walk sampling.
+
+Figure \ref{fig: learning policy} presents the reward for the first step, where we can see...
+
+\begin{figure}
+	\includegraphics[width=\linewidth]{example-image-a}
+	\caption{Reward for learning $\policy$ using the pre-trained $\nn$.}
+	\label{fig: learning policy}
+\end{figure}
+
+Figure \ref{fig: adapting policy} presents the reward for the second step, showing that ...
+
+\begin{figure}
+	\includegraphics[width=\linewidth]{example-image-a}
+	\caption{Reward for learning $\policy$ for the modified robot using the pre-trained $\nn$ and $\policy$.}
+	\label{fig: adapting policy}
+\end{figure}
