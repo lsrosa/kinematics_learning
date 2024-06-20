@@ -19,14 +19,27 @@ class ReacherPolicy(gym.Wrapper):
         """Constructor for the observation wrapper."""
         gym.Wrapper.__init__(self, env)
         
+        # compute bounds for observation space
+        _jl = self.unwrapped.joints_limits.max(axis=0)
+        _max_xdot = self.unwrapped.qdot_max*self.unwrapped.link_radii.max() 
+        _max_goal = (self.unwrapped.base_pos + self.unwrapped.link_radii.max()).max()
+        _min_goal = (self.unwrapped.base_pos - self.unwrapped.link_radii.max()).min()
+        
         self.observation_space = gym.spaces.Dict({
-            'q': Box(low=-np.inf, high=np.inf, shape=(self.unwrapped.n_joints,), dtype=np.float64),
-            'xdot': Box(low=-np.inf, high=np.inf, shape=(self.unwrapped.n_dims,self.unwrapped.n_joints), dtype=np.float64),
-            'goal': Box(low=-np.inf, high=np.inf, shape=(self.unwrapped.n_dims,), dtype=np.float64)
+            'q': Box(low=_jl[0], high=_jl[1], shape=(self.unwrapped.n_joints,), dtype=np.float64),
+            'xdot': Box(low=-_max_xdot, high=_max_xdot, shape=(self.unwrapped.n_dims,self.unwrapped.n_joints), dtype=np.float64),
+            'goal': Box(low=_min_goal, high=_max_goal, shape=(self.unwrapped.n_dims,), dtype=np.float64)
             })
 
-        self.action_space = gym.spaces.Box(low=0, high=1, shape=(self.unwrapped.n_joints,), dtype=np.float64)
+        self.action_space = gym.spaces.Box(low=-1, high=1, shape=(self.unwrapped.n_joints,), dtype=np.float64)
         
+        # this observation space is computed here and passed to the policy features extractor 
+        self.policy_observation_space = gym.spaces.Dict({
+            'x': Box(low=_min_goal, high=_max_goal, shape=(self.unwrapped.n_dims,self.unwrapped.n_joints), dtype=np.float64),
+            'xdot': Box(low=-_max_xdot, high=_max_xdot, shape=(self.unwrapped.n_dims,self.unwrapped.n_joints), dtype=np.float64),
+            'goal': Box(low=_min_goal, high=_max_goal, shape=(self.unwrapped.n_dims,), dtype=np.float64)
+            })
+
         self.current_obs_x = None
         self.x_prev = None
         self.current_reward = None
@@ -38,9 +51,6 @@ class ReacherPolicy(gym.Wrapper):
     def step(
             self, action: ActType
         ):   #-> tuple[ObsType, SupportsFloat, bool, bool, dict[str, Any]]:
-        
-        #actions in the environment are [-1, 1], however the learner outputs between [0, 1]
-        #action = 2*action-1
         
         observation, reward, terminated, truncated, info = self.env.step(action)
         self.current_reward, self.current_info = self.reward(observation)
@@ -69,7 +79,7 @@ class ReacherPolicy(gym.Wrapper):
 
     def compute_observation(self) -> WrapperObsType:
         # joint angles
-        q = np.mod(self.unwrapped.data.qpos[:self.unwrapped.n_joints], 2*np.pi)
+        q = self.unwrapped.data.qpos[:self.unwrapped.n_joints]
         qdot = self.unwrapped.data.qvel.flat[:self.unwrapped.n_joints]           # joint ang vel
         
         # position of each joint
@@ -78,7 +88,6 @@ class ReacherPolicy(gym.Wrapper):
             _x[:, j] = self.unwrapped.get_body_com('j%d'%j)[0:self.unwrapped.n_dims]
 
         xdot = (_x - self.x_prev)/self.unwrapped.dt
-
         self.current_obs = {'q': q, 'xdot': xdot, 'goal':self.unwrapped.goal}
         self.current_obs_x = _x
         return self.current_obs 

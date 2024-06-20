@@ -38,6 +38,9 @@ def learn(models_dir, results_dir, plots_dir, env_kwargs, sac_kwargs, learn_kwar
     
     env = make_vec_env("ReacherPolicy", env_kwargs=env_kwargs, n_envs=n_envs)
     
+    # add the policy observation space to kwargs
+    sac_kwargs['policy_kwargs']['features_extractor_kwargs']['to_observation_space'] = env.envs[0].get_wrapper_attr('policy_observation_space') 
+
     sac_model_name = model_name + sac_kwargs.pop('fkine_model_name')
     sac_model_file = models_dir+'/policy/%s.zip'%sac_model_name
     print(sac_model_file, sac_model_name)

@@ -50,16 +50,19 @@ class ExReacherEnv(MujocoEnv, utils.EzPickle):
         model_file = model_file.as_posix()
         
         self.qdot_max = 10
-        '''
+        
         # used to normalise the observations for the RL learning algo
-        self.link_sizes = np.zeros((n_joints, 3))
-        self.link_radii = np.zeros(n_joints)
-        for j in range(n_joints):
+        self.link_sizes = np.zeros((self.n_joints, 3))
+        self.link_radii = np.zeros(self.n_joints)
+        self.base_pos = model_xml.find('body', 'base').pos
+        prev_radius = 0
+        for j in range(self.n_joints):
             link = model_xml.find('geom', 'link%d'%j)
             self.link_sizes[j] = link.fromto[-3:] - link.fromto[:3] 
-            self.link_radii[j] = self.link_radii[:j].sum()+np.linalg.norm(self.link_sizes[j])
-        '''
-
+            self.link_radii[j] = prev_radius+np.linalg.norm(self.link_sizes[j])
+            prev_radius = self.link_radii[j]
+        
+        # load model
         utils.EzPickle.__init__(self, **kwargs)
         
         obs_size = 3*self.n_joints+2*self.n_dims
@@ -72,12 +75,12 @@ class ExReacherEnv(MujocoEnv, utils.EzPickle):
             default_camera_config=DEFAULT_CAMERA_CONFIG,
             **kwargs,
         )
-        
-        #extended
-        # get a random position in joint space
+        # also save joint limits
         self.joints_limits = (self.model.jnt_range)[:self.n_joints]
+        
         return
     
+    # get a random position in joint space
     def sample_joints(self):
         return rand_between(self.joints_limits)
 
@@ -96,7 +99,9 @@ class ExReacherEnv(MujocoEnv, utils.EzPickle):
             elif vel[j]<-self.qdot_max and a[j]<0:
                 a[j] = 0
         
-        unnorm_a = a*2-1
+        # The output of a policy might be outside [-1, 1], so we need a clip here
+        a = np.clip(a, -1, 1)
+
         self.do_simulation(a, self.frame_skip)
         if self.render_mode == "human":
             self.render()

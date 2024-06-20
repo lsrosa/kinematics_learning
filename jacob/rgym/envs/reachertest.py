@@ -67,7 +67,7 @@ class ReacherTest(gym.Wrapper):
 
     def compute_observation(self) -> WrapperObsType:
         # joint angles
-        q = np.mod(self.unwrapped.data.qpos[:self.unwrapped.n_joints], 2*np.pi)
+        q = self.unwrapped.data.qpos[:self.unwrapped.n_joints]
         qdot = self.unwrapped.data.qvel.flat[:self.unwrapped.n_joints]           # joint ang vel
         
         # position of each joint
