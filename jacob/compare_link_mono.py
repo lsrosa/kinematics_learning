@@ -24,13 +24,17 @@ else:
     device = 'cpu'
     print("Using CPU")
 
-def test(models_dir, results_dir, plots_dir, model_kwargs, device):
-    model_kwargs['model'] = None
-    _suffix = model_kwargs_2_str(**model_kwargs)
-    fkine_link_file = "/fkine_FKineLinked"+_suffix
-    fkine_mono_file = "/fkine_FKineMono"+_suffix
-   
-    env_kwargs={'model_file':path.cwd()/('rgym/envs/assets/reacher%dd%dj.xml'%(model_kwargs['n_dims'], model_kwargs['n_joints']))}
+def test(models_dir, results_dir, plots_dir, model_kwargs_link, model_kwargs_mono, device):
+    model_kwargs_link['model'] = None
+    model_kwargs_mono['model'] = None
+    _suffix_link = model_kwargs_2_str(**model_kwargs_link)
+    _suffix_mono = model_kwargs_2_str(**model_kwargs_mono)
+    fkine_link_file = "/fkine_FKineLinked"+_suffix_link
+    fkine_mono_file = "/fkine_FKineMono"+_suffix_mono
+    n_dims = model_kwargs_link['n_dims'] 
+    n_joints = model_kwargs_link['n_joints'] 
+
+    env_kwargs={'model_file':path.cwd()/('rgym/envs/assets/reacher%dd%dj.xml'%(n_dims, n_joints))}
     env = make_env(**env_kwargs)
     n_dims = env.unwrapped.n_dims
     n_joints = env.unwrapped.n_joints
@@ -38,7 +42,7 @@ def test(models_dir, results_dir, plots_dir, model_kwargs, device):
     
     fkine_link_model_files = sorted(glob(models_dir+fkine_link_file+"*.pt"))
     fkine_mono_model_files = sorted(glob(models_dir+fkine_mono_file+"*.pt"))
-
+    
     error_y_link = []
     error_y_mono = []
     error_y_dot_link = []
@@ -52,11 +56,11 @@ def test(models_dir, results_dir, plots_dir, model_kwargs, device):
         assert(_run_link == _run_mono)
         _run = _run_link
 
-        fkine_link_net = FKineLinked(**model_kwargs, device=device)
+        fkine_link_net = FKineLinked(**model_kwargs_link, device=device)
         fkine_link_net.load_state_dict(torch.load(fkine_link_model_file))
         fkine_link_net.to(device)
         
-        fkine_mono_net = FKineMono(**model_kwargs, device = device)
+        fkine_mono_net = FKineMono(**model_kwargs_mono, device = device)
         fkine_mono_net.load_state_dict(torch.load(fkine_mono_model_file))
         fkine_mono_net.to(device)
         env.reset() 
@@ -86,9 +90,7 @@ def test(models_dir, results_dir, plots_dir, model_kwargs, device):
         
         for i in range(n):
             jacobian_link,_ = torch.autograd.functional.jacobian(fkine_link_net, q_link[i])
-            #print('\nlink\n', jacobian_link)
             jacobian_mono = torch.autograd.functional.jacobian(fkine_mono_net, q_mono[i])
-            #print('\n\nmono\n', jacobian_mono)
             _j_link = jacobian_link[:,:,1].reshape(n_dims, n_joints)
             _j_mono = jacobian_mono[:,:,1].reshape(n_dims, n_joints)
             
@@ -133,7 +135,7 @@ def test(models_dir, results_dir, plots_dir, model_kwargs, device):
             for j in range(n_joints):
                 _titles += ['x%d%d'%(j,d)]
         _labels = ['ground truthl', 'linked', 'monolithic']
-
+        _suffix = '%dd%dj'%(n_dims, n_joints) 
         plt.figure()
         for d in range(n_dims):       
             for j in range(n_joints):
@@ -150,7 +152,7 @@ def test(models_dir, results_dir, plots_dir, model_kwargs, device):
         _titles = []
         for d in range(n_dims):
             _titles += ['vee%d'%d]
-        print(_titles)
+
         _titles = np.array(_titles).reshape((n_dims, 1))
         fig = plt.figure()
         for d in range(n_dims):       
@@ -224,9 +226,10 @@ def test(models_dir, results_dir, plots_dir, model_kwargs, device):
     return
 
 if __name__ == '__main__':
-    model_kwargs = dict()
-    model_kwargs['lr'] = 1e-4#[1e-5, 1e-6, 1e-7]
-    
+    model_kwargs_link = dict()
+    model_kwargs_link['lr'] = 1e-4#[1e-5, 1e-6, 1e-7]
+    model_kwargs_mono = model_kwargs_link.copy()
+
     learn_kwargs = dict()
     learn_kwargs['seed'] = 1
     learn_kwargs['n_rollouts'] = 1000
@@ -241,21 +244,22 @@ if __name__ == '__main__':
 
     for n_dims in [2, 3]:
         for _nj, n_joints in enumerate([2, 3, 4, 5, 6, 7]):
-            model_kwargs['n_dims'] = n_dims 
-            model_kwargs['n_joints'] = n_joints
-           
+            model_kwargs_link['n_dims'] = n_dims 
+            model_kwargs_link['n_joints'] = n_joints
             # these are constant for fkine linked
-            model_kwargs['n_hidden'] = 3
-            model_kwargs['size_hidden'] = 32
-            model_kwargs['model'] = 'FKineLinked'
-            learn('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs, learn_kwargs, device=device)
+            model_kwargs_link['n_hidden'] = 3
+            model_kwargs_link['size_hidden'] = 32
+            model_kwargs_link['model'] = 'FKineLinked'
+            learn('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_link, learn_kwargs, device=device)
     
-            model_kwargs['n_hidden'] = mono_n_hidden[_nj]
-            model_kwargs['size_hidden'] = mono_s_hidden[_nj]
-            model_kwargs['model'] = 'FKineMono'
-            learn('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs, learn_kwargs, device=device)
+            model_kwargs_mono['n_dims'] = n_dims 
+            model_kwargs_mono['n_joints'] = n_joints
+            model_kwargs_mono['n_hidden'] = mono_n_hidden[_nj]
+            model_kwargs_mono['size_hidden'] = mono_s_hidden[_nj]
+            model_kwargs_mono['model'] = 'FKineMono'
+            learn('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_mono, learn_kwargs, device=device)
 
-            test('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs, device=device)
+            test('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_link, model_kwargs_mono, device=device)
 
 
 
