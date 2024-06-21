@@ -6,48 +6,68 @@ We build upon the \texttt{Reacher-v4} environment from OpenAI Gym \cite{gym}, wh
 %
 In order to evaluate the proposed approach for more realistic robots, we extend the environment enabling for 3D, and adding models for robots up to $7$ joints\footnote{Publicly available source code: \href{https://github.com/lsrosa/kinematics\_learning}{https://github.com/lsrosa/kinematics\_learning}}.
 
-We implement $\nnMono$ and $\nnLink$ as feed-forward \gls{nn}.
-%
-While other approximators could be used, e.g., \glspl{gp} as in \cite{dalla2020autonomous}, their evaluation falls out-of-the-scope of this paper.
+The $\nn$ modules are implemented using PyTorch \cite{pytorch}, allowing for integration with OpenAI Gym, and the derivatives used in Section \ref{subsec: loss and acc} are computed using PyTorch's Autograd \cite{paszke2017automatic}.
 
 \subsection{Parameters Tuning}\label{subsec: tuning}
 
-In order to assure appropriate hyper-parameters for $\nn$, we perform a tuning for each model, which results in the values presented in Table \ref{tab: tune fkine}, where $lr$ is the learning rate, and \texttt{arch} is an array containing the number of elements neurons in each \gls{nn} layer. 
+In order to assure appropriate hyper-parameters for $\nn$, we perform a tuning for each model.
 %
-For the learning hyper-parameter of Algorithm \ref{alg: train nn}, we found that $nSamples=10^3$, $epochs=500$, $nIterations=50$, $batchSize=100$ are adequate values for all networks.
+We consider the hyper-parameters search space presented in Table \ref{tab: hyperparams search space} and perform $30$ training rounds, and select the smallest network which achieved an average error $\leq0.001$.
+%
+Each training round takes roughly $2$ days os processing in a standard computer\footnote{We use an Intel i9 computer with 16GB of RAM and without GPU.}.
+%
+We empirically found that $nSamples=10^3$, $epochs=500$, $nIterations=50$, $batchSize=100$ are appropriated values for the hyper-parameters of Algorithm \ref{alg: train nn}.
 
-\begin{table}
+\begin{table}[h]
 	\centering
+	\caption{$\nn$ hyper-parameters search space}
+	\label{tab: hyperparams search space}
+	\begin{tabulary}{\linewidth}{c|c}
+		\toprule
+		hyper-parameter & values \\\midrule
+		$\learningRate$ & $10^{-3}$, $10^{-4}$, $10^{-5}$\\\hline
+		$\nLayers$ & $2$, $3$, $4$, $5$, $6$ \\\hline
+		$\layerSize$ & $4$, $8$, $16$, $32$, $64$ \\
+		\bottomrule
+	\end{tabulary}
+\end{table}
+
+Table \ref{tab: tune fkine} presents the hyper-parameters found for $\nnMono$ and $\nnLink$ for robots operating in 2D and 3D, and with $\nJoints=\{2,\ldots, 7\}$. 
+%
+The found hyper-parameters values indicate that ...
+
+\begin{table}[h]
+	\centering
+	\caption{Parameters for 2D and 3D robots with varying number of joints.}
+	\label{tab: tune fkine}
 	\begin{tabulary}{\linewidth}{c|c|c|c|c|c|c|c}
 		\toprule
 		\multicolumn{7}{c}{$\nDims=2$} \\\hline
 		\multicolumn{2}{c}{$\nJoints$} & $2$ & $3$ & $4$ & $5$ & $6$ & $7$ \\\midrule
-		\multirow{3}{*}{$\nnMono$} & $lr$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ \\\cline{2-8}
-		& \texttt{n\_l} & $4$ & $4$ & $5$ & $5$ & $5$ & $5$ \\\cline{2-8}
-		& \texttt{l\_s} & $16$ & $32$ & $32$ & $32$ & $32$ & $32$ \\
+		\multirow{3}{*}{$\nnMono$} & $\learningRate$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ \\\cline{2-8}
+		& $\nLayers$ & $4$ & $4$ & $5$ & $5$ & $5$ & $5$ \\\cline{2-8}
+		& $\layerSize$ & $16$ & $32$ & $32$ & $32$ & $32$ & $32$ \\
 		\midrule
 		\multicolumn{8}{c}{$\nDims=3$} \\\hline
-		\multirow{3}{*}{$\nnMono$} & $lr$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ \\\cline{2-8}
-		& \texttt{n\_l} & $4$ & $5$ & $5$ & $5$ & $5$ & $5$ \\\cline{2-8}
-		& \texttt{l\_s} & $32$ & $32$ & $32$ & $32$ & $32$ & $32$  \\
+		\multirow{3}{*}{$\nnMono$} & $\learningRate$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ \\\cline{2-8}
+		& $\nLayers$ & $4$ & $5$ & $5$ & $5$ & $5$ & $5$ \\\cline{2-8}
+		& $\layerSize$ & $32$ & $32$ & $32$ & $32$ & $32$ & $32$  \\
 		\midrule
 		\midrule
 		\multicolumn{8}{c}{$\nDims=2$} \\\hline
-		\multirow{3}{*}{$\nnLink$} & $lr$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ \\\cline{2-8}
-		& \texttt{n\_l} & $3$ & $4$ & $5$ & $5$ & $5$ & $5$  \\\cline{2-8}
-		& \texttt{l\_s} & $32$ & $32$ & $32$ &  $32$ & $32$ & $32$\\
+		\multirow{3}{*}{$\nnLink$} & $\learningRate$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ \\\cline{2-8}
+		& $\nLayers$ & $3$ & $4$ & $5$ & $5$ & $5$ & $5$  \\\cline{2-8}
+		& $\layerSize$ & $32$ & $32$ & $32$ &  $32$ & $32$ & $32$\\
 		\midrule
 		\multicolumn{8}{c}{$\nDims=3$} \\\hline
-		\multirow{3}{*}{$\nnLink$} & $lr$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$  \\\cline{2-8}
-		& \texttt{n\_l} & $5$ & $5$ & $5$ & $5$ & $5$ & $5$  \\\cline{2-8}
-		& \texttt{l\_s} & $32$ & $32$ & $32$ & $32$ & $32$ & $32$  \\
+		\multirow{3}{*}{$\nnLink$} & $\learningRate$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$  \\\cline{2-8}
+		& $\nLayers$ & $5$ & $5$ & $5$ & $5$ & $5$ & $5$  \\\cline{2-8}
+		& $\layerSize$ & $32$ & $32$ & $32$ & $32$ & $32$ & $32$  \\
 		\bottomrule
 	\end{tabulary}
-	\caption{Parameters for 2D and 3D robots with varying number of joints. The policies $\nn$ are feed-forward \glspl{nn} with \texttt{n\_l} layers, each containing \texttt{l\_s} neurons. Each layer, except from the last, is followed by a \texttt{TanH} activation layer. \rev{check this weird font}}
-	\label{tab: tune fkine}
 \end{table}
 
-\subsection{Loss and Accuracy Results}
+\subsection{Loss and Accuracy Results}\label{subsec: loss and acc}
 
 Figure \ref{fig: loss fkines} presents the losses when learning $\nnMono$ and $\nnLink$, which shows that the proposed architecture outperforms the monolithic approach found used in the literature.
 

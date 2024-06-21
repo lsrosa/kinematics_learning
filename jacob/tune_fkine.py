@@ -22,11 +22,11 @@ else:
 if __name__ == '__main__':
     learn_kwargs = dict()
     learn_kwargs['seed'] = 1
-    learn_kwargs['n_rollouts'] = 1000
-    learn_kwargs['learn_steps'] = 500 
+    learn_kwargs['n_rollouts'] = 100
+    learn_kwargs['learn_steps'] = 300 
     learn_kwargs['n_envs'] = 32 
-    learn_kwargs['batch_size'] = 100 
-    learn_kwargs['n_iter'] = 25 
+    learn_kwargs['batch_size'] = 10 
+    learn_kwargs['n_iter'] = 10 
     learn_kwargs['append'] = False
     
     out_dir = 'results/tunning_fkine'

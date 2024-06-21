@@ -46,5 +46,5 @@ For a given $\joint{i}$, the a transformation between its reference frame and th
 For a serial manipulator, the transformations can be chained for obtaining a transformation for any given joint $\joint{i}$ in the world reference frame, according to Equation \ref{eq: dl transformation matrix 0 to i}.
 
 \begin{equation}\label{eq: dl transformation matrix 0 to i}
-	\vector{x}_i = \displaystyle\prod_{k=1}^{i}\matrix{T}_{k-1}^{k}~|~i \in \{1, \hdots, j\}
+	\matrix{T}^i_0 = \displaystyle\prod_{k=1}^{i}\matrix{T}_{k-1}^{k}~|~i \in \{1, \hdots, j\}
 \end{equation}

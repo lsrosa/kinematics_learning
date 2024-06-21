@@ -4,15 +4,21 @@
 
 While approaches in the literature propose to learn a monolithic approximator $\predMono = \nnMono(\vector{\rotAngle{}}):\realSet{\nJoints}\rightarrow\realSet{\nDims\times\nJoints}$, our main idea is to learn one approximator for each joint $\joint{i}$, which encodes $\matrix{T}_{i-1}^{i}$, and thus learning $\nJoints$ predictors $\predLink_i = \nnLink_i(\vector{\rotAngle{i}}):\realSet{1}\rightarrow\realSet{\nDims\times(\nDims+1)}~|~i\in\{1,\hdots\nJoints\}$, and joining all $\nnLink_i$ leads to the proposed model $\nnLink$.
 
-
 \begin{figure}
 	\centering
 	\includegraphics[width=\linewidth]{linked_network_overview.pdf}
-	\caption{Proposed architecture. For each joint $i\in\{1,\hdots,j\}$, a network $\nnLink_i$ learns the \gls{dh} transformation from joint $i-1$ to $i$ $\matrix{R}_{i-1}^{i}$.
+	\caption{Proposed architecture. For each $\joint{i}$ $i\in\{1,\hdots,j\}$, a network $\nnLink_i$ (green) learns $\matrix{R}_{i-1}^{i}$, which is the \gls{dh} transformation from $\joint{i-1}$ to $\joint{i}$ in function of $\rotAngle{i}$ (purple).
 	%
-	$\matrix{R}_{i-1}^{i}$ is multiplied by the cumulative transformation of all previous joints, resulting in $\matrix{R}_{0}^{i}$, from which the Cartesian position of joint $i$ $\prediction{\vector{x}}_i$ is obtained directly.}
+	$\matrix{R}_{i-1}^{i}$ is multiplied by the cumulative transformation of all previous joints, resulting in $\matrix{R}_{0}^{i}$, from which the Cartesian position $\prediction{\vector{x}}_i$ (yellow) is obtained directly.
+	%
+	Training is done using a loss $\loss$ base on the Cartesian distance between the estimated and real values (red) as described in Section \ref{subsec: loss}.
+	}
 	\label{fig:linked network overview}
 \end{figure}
+
+We implement $\nn$ as \glspl{nn} with $\nLayers$ fully-connected layers, and $\layerSize$ neurons for each layer. Each layer, except for the last, is followed by a \texttt{TanH} activation layer.
+%
+While other approximators could be used, e.g., \glspl{gp} as in \cite{dalla2020autonomous}, their evaluation falls out-of-the-scope of this paper.
 
 \subsection{Loss Function}\label{subsec: loss}
 
@@ -26,29 +32,6 @@ In contrast, since we perform the training in simulation, we have the flexibilit
 	\loss = \frac{1}{\nJoints}\sum_{k=1}^{\nJoints}||\prediction{x}_k-\vector{x}_k||
 \end{equation}
 
-%Similarly, for each $\nnLink_i$, we average the Euclidean distance between for all joints up to $\joint{i}$, according to Equation \ref{eq: loss link cart}.
-%\begin{equation}\label{eq: loss link cart}
-%	\lossLinkCart_i = \frac{1}{i}\sum_{k=1}^{i}||\predMono_k-\vector{x}_k|| ~|~ i\in\{1,\hdots,j\}
-%\end{equation}
-%Furthermore, we explore two properties of rotation matrices by adding two extra loss terms for $\nnLink_i$.
-%
-%The first property is that $\det(\matrix{R}) = 1$, which is captured by Equation \ref{eq: loss link det}.
-%
-%The second property is that $\matrix{R}^{T} = \matrix{R}^{-1}$, which is capture by Equation \ref{eq: loss link inv}.
-%\begin{equation}\label{eq: loss link det}
-%	\lossLinkDet_i = ||\det(\prediction{\matrix{R}}_i) - 1|| ~|~ i\in\{1,\hdots,j\}
-%\end{equation}
-%
-%\begin{equation}\label{eq: loss link inv}
-%	\lossLinkInv_i = ||\prediction{\matrix{R}}_i\prediction{\matrix{R}}_i^{T} - \matrix{I}|| ~|~ i\in\{1,\hdots,j\}
-%\end{equation}
-%The final loss for training $\nnLink_i$ is given by Equation \ref{eq: loss link}.
-%
-%The reason for incorporating $\lossLinkInv_i$ and $\lossLinkDet_i$ in $\lossLink_i$ is to motivate $\nnLink_i$ to converge to valid \gls{dh} matrices, indirectly pushing $\prediction{\matrix{D}}_i$ to converge to the proper Cartesian position of $\joint{i}$. 
-%\begin{equation}\label{eq: loss link}
-%	\lossLink_i = \lossLinkCart_i+\lossLinkInv_i+\lossLinkDet_i
-%\end{equation}
-
 \subsection{Training Procedure}\label{subsec: training procedure}
 
 Since in this stage we use simulation, both $\nnMono$ and $\nnLink$ are trained in a straight-forward 
@@ -58,7 +41,7 @@ For each epoch of training, $nSamples$ random poses are sampled in joint space (
 %
 The memory size is limited, and upon additions further than its limit, it drops a percentage of its oldest data (we use a $10\%$ data drop in all experiments) for reducing data allocation overheads.
 %
-Next, $nIterations$ of training is done with the data already within the memory, which are done by randomly sampling $batchSize$ samples from the memory (line $8$), computing the average loss (lines $9$ to $14$), which is then back-propagated through the network (line $15$).
+Next, $nIterations$ of training is done with the data already within the memory, which are done by randomly sampling $batchSize$ samples from the memory (line $8$), computing the average loss (lines $9$ to $14$), which is then back-propagated through the network (line $15$) with an $\learningRate$ learning rate.
  
 \begin{algorithm}
 	\caption{Training procedure for $\nn$.}\label{alg: train nn}
@@ -77,7 +60,7 @@ Next, $nIterations$ of training is done with the data already within the memory,
 			}
 		}
 		$meanLoss\leftarrow meanLoss/batchSize$\;
-		backpropagate $meanLoss$ through $\nn$\; 
+		backpropagate($meanLoss$, $\learningRate$) through $\nn$\; 
 	}
 \end{algorithm}
 
