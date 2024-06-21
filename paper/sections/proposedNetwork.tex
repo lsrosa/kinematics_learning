@@ -2,7 +2,11 @@
 
 \subsection{Overview}\label{subsec: overview}
 
-While approaches in the literature propose to learn a monolithic approximator $\predMono = \nnMono(\vector{\rotAngle{}}):\realSet{\nJoints}\rightarrow\realSet{\nDims\times\nJoints}$, our main idea is to learn one approximator for each joint $\joint{i}$, which encodes $\matrix{T}_{i-1}^{i}$, and thus learning $\nJoints$ predictors $\predLink_i = \nnLink_i(\vector{\rotAngle{i}}):\realSet{1}\rightarrow\realSet{\nDims\times(\nDims+1)}~|~i\in\{1,\hdots\nJoints\}$, and joining all $\nnLink_i$ leads to the proposed model $\nnLink$.
+While approaches in the literature propose to learn a monolithic approximator $\predMono = \nnMono(\vector{\rotAngle{}}):\realSet{\nJoints}\rightarrow\realSet{\nDims\times\nJoints}$.
+%
+Our main idea is to learn one approximator for each joint $\joint{i}$, which encodes $\matrix{T}_{i-1}^{i}$, and thus learning $\nJoints$ predictors $\predLink_i = \nnLink_i(\vector{\rotAngle{i}}):\realSet{1}\rightarrow\realSet{\nDims\times(\nDims+1)}~|~i\in\{1,\hdots\nJoints\}$, and joining all $\nnLink_i$ leads to the proposed model $\nnLink$.
+%
+Figure \ref{fig:linked network overview} presents the proposed architecture's overview.
 
 \begin{figure}
 	\centering

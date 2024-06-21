@@ -10,11 +10,9 @@ The $\nn$ modules are implemented using PyTorch \cite{pytorch}, allowing for int
 
 \subsection{Parameters Tuning}\label{subsec: tuning}
 
-In order to assure appropriate hyper-parameters for $\nn$, we perform a tuning for each model.
+In order to assure appropriate hyper-parameters for $\nn$, we perform an exhaustive search over the space presented in Table \ref{tab: hyperparams search space} for robots $\nDims=\{2, 3\}$ and $\nJoints=\{2,\ldots,7\}$, leading to training a total of $1050$ models, which takes roughly $2$ days of processing in a standard computer\footnote{We use an Intel i9 computer with 16GB of RAM and without GPU.}.
 %
-We consider the hyper-parameters search space presented in Table \ref{tab: hyperparams search space} and perform $30$ training rounds, and select the smallest network which achieved an average error $\leq0.001$.
-%
-Each training round takes roughly $2$ days os processing in a standard computer\footnote{We use an Intel i9 computer with 16GB of RAM and without GPU.}.
+The exhaustive search is repeated $30$ times, and the final hyper-parameter values are chosen as the ones which yield the smallest \gls{nn} (regarding its total number of parameters) and that guarantee an average final loss over the last $10$ epochs $\leq0.05$. 
 %
 We empirically found that $nSamples=10^3$, $epochs=500$, $nIterations=50$, $batchSize=100$ are appropriated values for the hyper-parameters of Algorithm \ref{alg: train nn}.
 
@@ -34,8 +32,12 @@ We empirically found that $nSamples=10^3$, $epochs=500$, $nIterations=50$, $batc
 
 Table \ref{tab: tune fkine} presents the hyper-parameters found for $\nnMono$ and $\nnLink$ for robots operating in 2D and 3D, and with $\nJoints=\{2,\ldots, 7\}$. 
 %
-The found hyper-parameters values indicate that ...
+The found hyper-parameters values demonstrate the consequences of using a monolithic architecture: the complexity of the function being approximated grows with $\nJoints$ (as described in Equation \ref{eq: x estimate in function of q}), and hence a larger \gls{nn} is more suitable.
+%
+In comparison, the function being approximated with the proposed architecture is constant in $\nJoints$, and increasing $\nJoints$ increases the number of approximators with constant complexity.
 
+As result, the proposed architecture is expected to scale better with $\nJoints$ than its monolithic counterpart, both in precision and sample efficiency.
+ 
 \begin{table}[h]
 	\centering
 	\caption{Parameters for 2D and 3D robots with varying number of joints.}
@@ -45,24 +47,24 @@ The found hyper-parameters values indicate that ...
 		\multicolumn{7}{c}{$\nDims=2$} \\\hline
 		\multicolumn{2}{c}{$\nJoints$} & $2$ & $3$ & $4$ & $5$ & $6$ & $7$ \\\midrule
 		\multirow{3}{*}{$\nnMono$} & $\learningRate$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ \\\cline{2-8}
-		& $\nLayers$ & $4$ & $4$ & $5$ & $5$ & $5$ & $5$ \\\cline{2-8}
-		& $\layerSize$ & $16$ & $32$ & $32$ & $32$ & $32$ & $32$ \\
+		& $\nLayers$ & $4$ & $5$ & $5$ & $6$ & $6$ & $6$ \\\cline{2-8}
+		& $\layerSize$ & $32$ & $32$ & $64$ & $64$ & $64$ & $64$ \\
 		\midrule
 		\multicolumn{8}{c}{$\nDims=3$} \\\hline
 		\multirow{3}{*}{$\nnMono$} & $\learningRate$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ \\\cline{2-8}
-		& $\nLayers$ & $4$ & $5$ & $5$ & $5$ & $5$ & $5$ \\\cline{2-8}
-		& $\layerSize$ & $32$ & $32$ & $32$ & $32$ & $32$ & $32$  \\
+		& $\nLayers$ & $4$ & $5$ & $5$ & $6$ & $6$ & $6$ \\\cline{2-8}
+		& $\layerSize$ & $32$ & $32$ & $64$ & $64$ & $64$ & $64$ \\
 		\midrule
 		\midrule
 		\multicolumn{8}{c}{$\nDims=2$} \\\hline
 		\multirow{3}{*}{$\nnLink$} & $\learningRate$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ \\\cline{2-8}
-		& $\nLayers$ & $3$ & $4$ & $5$ & $5$ & $5$ & $5$  \\\cline{2-8}
+		& $\nLayers$ & $3$ & $3$ & $3$ & $3$ & $3$ & $3$  \\\cline{2-8}
 		& $\layerSize$ & $32$ & $32$ & $32$ &  $32$ & $32$ & $32$\\
 		\midrule
 		\multicolumn{8}{c}{$\nDims=3$} \\\hline
 		\multirow{3}{*}{$\nnLink$} & $\learningRate$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$  \\\cline{2-8}
-		& $\nLayers$ & $5$ & $5$ & $5$ & $5$ & $5$ & $5$  \\\cline{2-8}
-		& $\layerSize$ & $32$ & $32$ & $32$ & $32$ & $32$ & $32$  \\
+		& $\nLayers$ & $3$ & $3$ & $3$ & $3$ & $3$ & $3$  \\\cline{2-8}
+		& $\layerSize$ & $32$ & $32$ & $32$ &  $32$ & $32$ & $32$\\
 		\bottomrule
 	\end{tabulary}
 \end{table}

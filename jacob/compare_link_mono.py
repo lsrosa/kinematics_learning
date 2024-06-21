@@ -220,32 +220,42 @@ def test(models_dir, results_dir, plots_dir, model_kwargs, device):
     plt.xlabel('epoch')
     plt.legend()
     plt.savefig(plots_dir+'/fkine_link_x_mono_%s.png'%_suffix, dpi=1200)
-    plt.show()
+    plt.close()
     return
 
 if __name__ == '__main__':
     model_kwargs = dict()
-    model_kwargs['lr'] = 5e-4#[1e-5, 1e-6, 1e-7]
-    model_kwargs['n_hidden'] = 3#[2, 3, 4, 5]
-    model_kwargs['size_hidden'] = 32#[8, 16, 32, 64]
-    model_kwargs['n_joints'] = 2#[2,3]
-    model_kwargs['n_dims'] = 2#[2,3]
+    model_kwargs['lr'] = 1e-4#[1e-5, 1e-6, 1e-7]
     
     learn_kwargs = dict()
     learn_kwargs['seed'] = 1
-    learn_kwargs['n_rollouts'] = 100
+    learn_kwargs['n_rollouts'] = 1000
     learn_kwargs['learn_steps'] = 500 
     learn_kwargs['n_envs'] = 32 
-    learn_kwargs['batch_size'] = 20#100 
+    learn_kwargs['batch_size'] = 100 
     learn_kwargs['n_iter'] = 50
     learn_kwargs['append'] = False 
-
-    model_kwargs['model'] = 'FKineLinked'
-    learn('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs, learn_kwargs, device=device)
     
-    model_kwargs['model'] = 'FKineMono'
-    learn('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs, learn_kwargs, device=device)
-    test('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs, device=device)
+    mono_n_hidden = [4, 5, 5, 6, 6, 6]
+    mono_s_hidden = [32, 32, 64, 64, 64, 64]
+
+    for n_dims in [2, 3]:
+        for _nj, n_joints in enumerate([2, 3, 4, 5, 6, 7]):
+            model_kwargs['n_dims'] = n_dims 
+            model_kwargs['n_joints'] = n_joints
+           
+            # these are constant for fkine linked
+            model_kwargs['n_hidden'] = 3
+            model_kwargs['size_hidden'] = 32
+            model_kwargs['model'] = 'FKineLinked'
+            learn('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs, learn_kwargs, device=device)
+    
+            model_kwargs['n_hidden'] = mono_n_hidden[_nj]
+            model_kwargs['size_hidden'] = mono_s_hidden[_nj]
+            model_kwargs['model'] = 'FKineMono'
+            learn('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs, learn_kwargs, device=device)
+
+            test('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs, device=device)
 
 
 
