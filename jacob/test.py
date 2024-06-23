@@ -47,7 +47,7 @@ def validate(models_dir, model_kwargs, device=device):
     env_kwargs={'model_file':home_dir/('rgym/envs/assets/reacher%dd%dj.xml'%(n_dims, n_joints))}
     env = make_env(**env_kwargs)
     obs = env.reset()[0]
-    
+
     fkine_model_file = sorted(list(models_dir.glob("%s*.pt"%(fkine_file))))[0]
 
     errors = [] 
@@ -101,11 +101,11 @@ def learn_wrap(config, max_epochs, out_dir, model_kwargs, learn_kwargs, device=d
     else:
         start_epoch = 0
     
-    tune_dir = home_dir/out_dir/'reacher%dd%dj'%(model_kwargs['n_dims'], model_kwargs['n_joints'])
+    tune_dir = home_dir/out_dir/('reacher%dd%dj'%(model_kwargs['n_dims'], model_kwargs['n_joints']))
     for i in range(start_epoch, max_epochs):
         learn_kwargs['learn_steps'] += ls
         learn(tune_dir/'models', tune_dir/'results', tune_dir/'plots', model_kwargs, learn_kwargs, device=device) 
-        val_loss = validate(home_dir/out_dir/'models', model_kwargs, device=device)
+        val_loss = validate(tune_dir/'models', model_kwargs, device=device)
    
     with tempfile.TemporaryDirectory() as checkpoint_dir:
             data_path = path(checkpoint_dir) / "data.pkl"
@@ -167,5 +167,4 @@ if __name__ == '__main__':
                 best_trial = result.get_best_trial("loss", "min", "last")
                 print(f"Best trial config: {best_trial.config}")
                 print(f"Best trial final validation loss: {best_trial.last_result['loss']}")
-                print(f"Best trial final validation accuracy: {best_trial.last_result['accuracy']}")
                 quit()
