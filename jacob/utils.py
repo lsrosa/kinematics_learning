@@ -1,4 +1,4 @@
-import os
+from pathlib import Path as path
 import numpy as np
 
 import gymnasium as gym
@@ -27,9 +27,9 @@ def make_env(env_name = "ReacherTest", **kwargs):
     return env
 
 def make_dirs(names = []):
+    cwd = path.cwd()
     for name in names:
-        if not os.path.exists(name):
-            os.makedirs(name)
+        (cwd/name).mkdir(parents=True, exist_ok=True)
 
 def create_model_variation(model_dir, n_dims, n_joints, var):
     var_dir = path(model_dir)/'variations'

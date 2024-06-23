@@ -16,17 +16,23 @@ import pickle
 import json
 from pathlib import Path as path
 
-def learn(models_dir, results_dir, plots_dir, model_kwargs, learn_kwargs, device):
+def learn(models_dir, results_dir, plots_dir, model_kwargs, learn_kwargs, device, plot=False):
+    model_kwargs = model_kwargs.copy()
+
+    if 'env_models_home' in model_kwargs:
+        env_models_home = path(model_kwargs.pop('env_models_home'))
+    else:
+        env_models_home = path.cwd()
+    
     print('Learning Model: %s'%model_kwargs['model'])
     make_dirs([models_dir, results_dir, plots_dir])
     _suffix = model_kwargs_2_str(**model_kwargs)
     fkine_file = "fkine_"+_suffix
     
-    kwargs_file = models_dir+'/'+fkine_file+'_kwargs.json'
+    kwargs_file = models_dir/(fkine_file+'_kwargs.json')
     with open(kwargs_file, 'w') as f:
         json.dump(model_kwargs, f)
     
-    models_dir = path(models_dir)
     fkine_model_files = sorted(list(models_dir.glob("%s*.pt"%fkine_file)))
     print('model_files: ', fkine_model_files)
 
@@ -37,7 +43,7 @@ def learn(models_dir, results_dir, plots_dir, model_kwargs, learn_kwargs, device
             return
 
         if learn_kwargs['append'] or learn_kwargs['refine']:
-            with open(results_dir+'/'+fkine_file+'.pickle', 'rb') as h:
+            with open(results_dir/(fkine_file+'.pickle'), 'rb') as h:
                 losses, durations = pickle.load(h)
                 steps_learned = losses.shape[1]
 
@@ -59,8 +65,8 @@ def learn(models_dir, results_dir, plots_dir, model_kwargs, learn_kwargs, device
         fkine_model_files.append(models_dir/(fkine_file+"run1.pt"))
         losses = np.empty(shape=(0,steps_to_learn)) 
         durations = np.empty(shape=(0,))
-    
-    env_kwargs={'model_file':path.cwd()/('rgym/envs/assets/reacher%dd%dj.xml'%(model_kwargs['n_dims'], model_kwargs['n_joints']))}
+
+    env_kwargs={'model_file':env_models_home/('rgym/envs/assets/reacher%dd%dj.xml'%(model_kwargs['n_dims'], model_kwargs['n_joints']))}
     envs = make_vec_env("ReacherTest", env_kwargs=env_kwargs, n_envs=learn_kwargs['n_envs']) 
     print("----------------------------")
     print(f"Obs: {envs.observation_space}   Act: {envs.action_space}")
@@ -77,7 +83,7 @@ def learn(models_dir, results_dir, plots_dir, model_kwargs, learn_kwargs, device
         
         # train
         fkine_net = eval(fkine_model_name)(**model_kwargs, device=device)
-        if learn_kwargs['refine']:
+        if learn_kwargs['refine'] and losses.shape[0]>0:
             print('loading for continuing training: ', fkine_model_file)
             fkine_net.load_state_dict(torch.load(fkine_model_file, map_location=torch.device(device)))        
         fkine_net.to(device)
@@ -95,6 +101,7 @@ def learn(models_dir, results_dir, plots_dir, model_kwargs, learn_kwargs, device
         run = True
         
         start_time = time()
+        
         while istep < learn_steps and run:
             print(f"{istep:6d} | Training fkine_net with seed {current_seed} ...")
             envs.seed(seed=current_seed)
@@ -115,25 +122,34 @@ def learn(models_dir, results_dir, plots_dir, model_kwargs, learn_kwargs, device
         _durs.append(time() - start_time)
         
         mean_losses = np.vstack((mean_losses, np.array(_mean_losses)))
-
+        
+        # Save model
+        torch.save(fkine_net.state_dict(), fkine_model_file)
+    
+    # append or add durations and losses
     _durs = np.array(_durs)
     if learn_kwargs['refine']:
-        losses = np.hstack((losses, mean_losses))
+        if losses.shape[0] == 0:
+            losses = mean_losses
+        else:
+            losses = np.hstack((losses, mean_losses))
         durations = durations + _durs
     else:
         losses = np.vstack((losses, mean_losses))
         durations = np.hstack((durations, _durs))
-
-    with open(results_dir+'/'+fkine_file+'.pickle', 'wb') as h:
+    
+    # Save durations and losses
+    with open(results_dir/(fkine_file+'.pickle'), 'wb') as h:
         pickle.dump((losses, durations), h)
-        torch.save(fkine_net.state_dict(), fkine_model_file)
-
+    
+    if not plot: return
+    # make a pretty figure
     plt.figure()
     epochs = np.linspace(1, losses.shape[1], losses.shape[1])
     plt.fill_between(epochs, np.min(losses, axis=0), np.max(losses, axis=0), alpha=0.3)
     plt.plot(epochs, np.mean(losses, axis=0))
     plt.ylabel('loss')
     plt.xlabel('epoch')
-    plt.savefig(plots_dir+'/'+fkine_file+'.png')
+    plt.savefig(plots_dir/(fkine_file+'.png'))
 
     return

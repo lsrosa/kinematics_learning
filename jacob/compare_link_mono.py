@@ -36,8 +36,6 @@ def test(models_dir, results_dir, plots_dir, model_kwargs_link, model_kwargs_mon
 
     env_kwargs={'model_file':path.cwd()/('rgym/envs/assets/reacher%dd%dj.xml'%(n_dims, n_joints))}
     env = make_env(**env_kwargs)
-    n_dims = env.unwrapped.n_dims
-    n_joints = env.unwrapped.n_joints
     obs = env.reset()[0]
     
     fkine_link_model_files = sorted(glob(models_dir+fkine_link_file+"*.pt"))
@@ -191,7 +189,7 @@ def test(models_dir, results_dir, plots_dir, model_kwargs_link, model_kwargs_mon
             plt.xlabel('step')
             plt.ylabel('absolute x error')
     plt.legend()
-    plt.savefig(plots_dir+'/fkine_errors_x%s%s.png'%(_suffix, _run), dpi=1200)
+    plt.savefig(plots_dir+'/fkine_errors_x%s.png'%(_suffix), dpi=1200)
     
     plt.figure()
     for d in range(n_dims):       
@@ -206,7 +204,7 @@ def test(models_dir, results_dir, plots_dir, model_kwargs_link, model_kwargs_mon
         plt.xlabel('step')             
         plt.ylabel('absolute x dot error')
     plt.legend()
-    plt.savefig(plots_dir+'/fkine_errors_x_dot%s%s.png'%(_suffix,_run), dpi=1200)
+    plt.savefig(plots_dir+'/fkine_errors_x_dot%s.png'%(_suffix), dpi=1200)
 
     with open(results_dir+fkine_link_file+'.pickle', 'rb') as h:
         losses_link, duration = pickle.load(h)
