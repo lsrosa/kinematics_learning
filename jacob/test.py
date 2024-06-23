@@ -114,7 +114,7 @@ def learn_wrap(config, max_epochs, out_dir, model_kwargs, learn_kwargs, device=d
 
             checkpoint = Checkpoint.from_directory(checkpoint_dir)
             train.report(
-                {"loss": val_loss, "accuracy": val_loss},
+                {"loss": val_loss},
                 checkpoint=checkpoint,
             )
     return
@@ -151,7 +151,7 @@ if __name__ == '__main__':
                 scheduler = ASHAScheduler(
                         metric="loss",
                         mode="min",
-                        max_t=10, #max_num_epochs,
+                        max_t=1, #max_num_epochs,
                         grace_period=1,
                         reduction_factor=2,
                         )
