@@ -13,84 +13,120 @@ from matplotlib import pyplot as plt
 from utils import * 
 from time import time
 import pickle
-from glob import glob
 import json
+from pathlib import Path as path
 
 def learn(models_dir, results_dir, plots_dir, model_kwargs, learn_kwargs, device):
     print('Learning Model: %s'%model_kwargs['model'])
     make_dirs([models_dir, results_dir, plots_dir])
     _suffix = model_kwargs_2_str(**model_kwargs)
-    fkine_file = "/fkine_"+_suffix
+    fkine_file = "fkine_"+_suffix
     
-    kwargs_file = models_dir+fkine_file+'_kwargs.json'
+    kwargs_file = models_dir+'/'+fkine_file+'_kwargs.json'
     with open(kwargs_file, 'w') as f:
         json.dump(model_kwargs, f)
+    
+    models_dir = path(models_dir)
+    fkine_model_files = sorted(list(models_dir.glob("%s*.pt"%fkine_file)))
+    print('model_files: ', fkine_model_files)
 
-    if glob(models_dir+fkine_file+"*.pt"):
-        print('models exist')
-        if learn_kwargs['append']:
-            with open(results_dir+fkine_file+'.pickle', 'rb') as h:
+    if len(fkine_model_files)>0:
+        print('Existing models: ', fkine_model_files)
+        if learn_kwargs['append'] and learn_kwargs['refine']:
+            print('Choose between refine or append. Doing nothing.')
+            return
+
+        if learn_kwargs['append'] or learn_kwargs['refine']:
+            with open(results_dir+'/'+fkine_file+'.pickle', 'rb') as h:
                 losses, durations = pickle.load(h)
-            #print('loading: ', losses, durations)
+                steps_learned = losses.shape[1]
+
+            if learn_kwargs['append']:
+                fkine_model_files = [models_dir/(fkine_file+"run%d.pt"%(losses.shape[0]+1))]
+                steps_to_learn = steps_learned
+            elif learn_kwargs['refine']:
+                steps_to_learn = learn_kwargs['learn_steps']-steps_learned
+                if steps_to_learn <= 0:
+                    print('Already learned more than learn_spes. No training.')
+                    return
+                print('already learned: ', steps_learned, ' ... to learn: ', steps_to_learn)
         else:
             print('no training')
             return
     else:
-        losses = None 
-        durations = []
-
+        steps_learned = 0 
+        steps_to_learn = learn_kwargs['learn_steps']
+        fkine_model_files.append(models_dir/(fkine_file+"run1.pt"))
+        losses = np.empty(shape=(0,steps_to_learn)) 
+        durations = np.empty(shape=(0,))
+    
     env_kwargs={'model_file':path.cwd()/('rgym/envs/assets/reacher%dd%dj.xml'%(model_kwargs['n_dims'], model_kwargs['n_joints']))}
-
     envs = make_vec_env("ReacherTest", env_kwargs=env_kwargs, n_envs=learn_kwargs['n_envs']) 
     print("----------------------------")
     print(f"Obs: {envs.observation_space}   Act: {envs.action_space}")
-   
-    # train
-    fkine_net = eval(model_kwargs.pop('model'))(**model_kwargs, device=device)
-    fkine_net.to(device)
     
-    model_cb = LearnCB(device = device)
-    model_cb.env = envs 
-    model_cb.fkine = fkine_net
-    model_cb.data = IncrDataset() 
+    learn_steps = steps_to_learn*envs.num_envs*learn_kwargs['n_rollouts']
+    current_seed = steps_learned*envs.num_envs
+
+    mean_losses = np.empty(shape=(0,steps_to_learn))
     
-    learn_steps = learn_kwargs['learn_steps']*envs.num_envs*learn_kwargs['n_rollouts']
-    current_seed = learn_kwargs['seed'] 
-    mean_losses = []
-    
-    obs = dict()
-    for key in envs.unwrapped.observation_space.keys():
-        obs[key] = np.empty(shape=(envs.num_envs,)+envs.unwrapped.observation_space[key].shape)
-    #a = np.zeros((envs.num_envs, envs.action_space.shape[0]))
-    
-    istep = 0
-    run = True
-    
-    start_time = time()
-    while istep < learn_steps and run:
-        print(f"{istep:6d} | Training fkine_net with seed {current_seed} ...")
-        envs.seed(seed=current_seed)
-        current_seed += envs.num_envs
-        obs = envs.reset()
+    fkine_model_name = model_kwargs.pop('model')
+    for fkine_model_file in fkine_model_files:
+        _mean_losses = []
+        _durs = []
         
-        model_cb._on_rollout_start()
-        for _ in range(learn_kwargs['n_rollouts']):
-            for env in envs.envs:
-                _q = env.unwrapped.sample_joints() 
-                env.unwrapped.set_joint_state(_q) 
+        # train
+        fkine_net = eval(fkine_model_name)(**model_kwargs, device=device)
+        if learn_kwargs['refine']:
+            print('loading for continuing training: ', fkine_model_file)
+            fkine_net.load_state_dict(torch.load(fkine_model_file, map_location=torch.device(device)))        
+        fkine_net.to(device)
 
-            #obs, _, _, _ = envs.step(a)
-            istep += envs.num_envs 
-            run = model_cb._on_step()
-        loss = model_cb._on_rollout_end(bs=learn_kwargs['batch_size'], n_iter=learn_kwargs['n_iter'])
-        mean_losses.append(loss)
-    durations.append(time() - start_time)
+        model_cb = LearnCB(device = device)
+        model_cb.env = envs 
+        model_cb.fkine = fkine_net
+        model_cb.data = IncrDataset() 
+        
+        obs = dict()
+        for key in envs.unwrapped.observation_space.keys():
+            obs[key] = np.empty(shape=(envs.num_envs,)+envs.unwrapped.observation_space[key].shape)
+        
+        istep = 0
+        run = True
+        
+        start_time = time()
+        while istep < learn_steps and run:
+            print(f"{istep:6d} | Training fkine_net with seed {current_seed} ...")
+            envs.seed(seed=current_seed)
+            current_seed += envs.num_envs
+            obs = envs.reset()
+            
+            model_cb._on_rollout_start()
+            for _ in range(learn_kwargs['n_rollouts']):
+                for env in envs.envs:
+                    _q = env.unwrapped.sample_joints() 
+                    env.unwrapped.set_joint_state(_q) 
 
-    if not isinstance(losses, np.ndarray):
-        losses = np.array([mean_losses])
+                #obs, _, _, _ = envs.step(a)
+                istep += envs.num_envs 
+                run = model_cb._on_step()
+            loss = model_cb._on_rollout_end(bs=learn_kwargs['batch_size'], n_iter=learn_kwargs['n_iter'])
+            _mean_losses.append(loss)
+        _durs.append(time() - start_time)
+        
+        mean_losses = np.vstack((mean_losses, np.array(_mean_losses)))
+
+    _durs = np.array(_durs)
+    if learn_kwargs['refine']:
+        losses = np.hstack((losses, mean_losses))
+        durations = durations + _durs
     else:
-        losses = np.vstack((losses, np.array(mean_losses)))
-    torch.save(fkine_net.state_dict(), models_dir+fkine_file+"run%d.pt"%losses.shape[0])
+        losses = np.vstack((losses, mean_losses))
+        durations = np.hstack((durations, _durs))
+
+    with open(results_dir+'/'+fkine_file+'.pickle', 'wb') as h:
+        pickle.dump((losses, durations), h)
+        torch.save(fkine_net.state_dict(), fkine_model_file)
 
     plt.figure()
     epochs = np.linspace(1, losses.shape[1], losses.shape[1])
@@ -98,7 +134,6 @@ def learn(models_dir, results_dir, plots_dir, model_kwargs, learn_kwargs, device
     plt.plot(epochs, np.mean(losses, axis=0))
     plt.ylabel('loss')
     plt.xlabel('epoch')
-    plt.savefig(plots_dir+fkine_file+".png")
-    with open(results_dir+fkine_file+'.pickle', 'wb') as h:
-        pickle.dump((losses, durations), h)
+    plt.savefig(plots_dir+'/'+fkine_file+'.png')
+
     return

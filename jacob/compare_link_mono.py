@@ -57,21 +57,22 @@ def test(models_dir, results_dir, plots_dir, model_kwargs_link, model_kwargs_mon
         _run = _run_link
 
         fkine_link_net = FKineLinked(**model_kwargs_link, device=device)
-        fkine_link_net.load_state_dict(torch.load(fkine_link_model_file))
-        fkine_link_net.to(device)
+        fkine_link_net.load_state_dict(torch.load(fkine_link_model_file, map_location=torch.device(device)))
+        fkine_link_net = fkine_link_net.to(device)
+
+        fkine_mono_net = FKineMono(**model_kwargs_mono, device=device)
+        fkine_mono_net.load_state_dict(torch.load(fkine_mono_model_file, map_location=torch.device(device)))
+        fkine_mono_net = fkine_mono_net.to(device)
         
-        fkine_mono_net = FKineMono(**model_kwargs_mono, device = device)
-        fkine_mono_net.load_state_dict(torch.load(fkine_mono_model_file))
-        fkine_mono_net.to(device)
         env.reset() 
         for sample in range(n_samples):
             action = env.action_space.sample() 
             obs, reward, terminated, truncated, info = env.step(action)
-            q.append(obs['q'])
-            q_dot.append(obs['qdot'])
-            y.append(obs['x'])
-            y_dot.append(obs['xdot'])
-
+            q.append(obs['q'].copy())
+            q_dot.append(obs['qdot'].copy())
+            y.append(obs['x'].copy())
+            y_dot.append(obs['xdot'].copy())
+        
         n = len(y)
         y = np.array(y)
         q_link = torch.Tensor(np.array(q)).to(device)
@@ -147,7 +148,7 @@ def test(models_dir, results_dir, plots_dir, model_kwargs_link, model_kwargs_mon
                 plt.plot(y_pred_plot_mono[:,idx], alpha = 0.5, ls = '-.', marker='s')
                 plt.title(_titles[idx])
         plt.legend(_labels)
-        plt.savefig(plots_dir+'/fine_predictions_x%s%s.png'%(_suffix, _run), dpi=1200)
+        plt.savefig(plots_dir+'/fkine_predictions_x%s%s.png'%(_suffix, _run), dpi=1200)
         
         _titles = []
         for d in range(n_dims):
@@ -190,7 +191,7 @@ def test(models_dir, results_dir, plots_dir, model_kwargs_link, model_kwargs_mon
             plt.xlabel('step')
             plt.ylabel('absolute x error')
     plt.legend()
-    plt.savefig(plots_dir+'/fine_errors_x%s.png'%(_suffix), dpi=1200)
+    plt.savefig(plots_dir+'/fkine_errors_x%s%s.png'%(_suffix, _run), dpi=1200)
     
     plt.figure()
     for d in range(n_dims):       
@@ -205,7 +206,7 @@ def test(models_dir, results_dir, plots_dir, model_kwargs_link, model_kwargs_mon
         plt.xlabel('step')             
         plt.ylabel('absolute x dot error')
     plt.legend()
-    plt.savefig(plots_dir+'/fine_errors_x_dot%s.png'%(_suffix), dpi=1200)
+    plt.savefig(plots_dir+'/fkine_errors_x_dot%s%s.png'%(_suffix,_run), dpi=1200)
 
     with open(results_dir+fkine_link_file+'.pickle', 'rb') as h:
         losses_link, duration = pickle.load(h)
@@ -227,17 +228,18 @@ def test(models_dir, results_dir, plots_dir, model_kwargs_link, model_kwargs_mon
 
 if __name__ == '__main__':
     model_kwargs_link = dict()
-    model_kwargs_link['lr'] = 1e-4#[1e-5, 1e-6, 1e-7]
+    model_kwargs_link['lr'] = 5e-4#[1e-5, 1e-6, 1e-7]
     model_kwargs_mono = model_kwargs_link.copy()
 
     learn_kwargs = dict()
     learn_kwargs['seed'] = 1
-    learn_kwargs['n_rollouts'] = 1000
-    learn_kwargs['learn_steps'] = 500 
+    learn_kwargs['n_rollouts'] = 100
+    learn_kwargs['learn_steps'] = 5 
     learn_kwargs['n_envs'] = 32 
-    learn_kwargs['batch_size'] = 100 
-    learn_kwargs['n_iter'] = 50
-    learn_kwargs['append'] = False 
+    learn_kwargs['batch_size'] = 10 
+    learn_kwargs['n_iter'] = 10
+    learn_kwargs['append'] = True 
+    learn_kwargs['refine'] = False 
     
     mono_n_hidden = [4, 5, 5, 6, 6, 6]
     mono_s_hidden = [32, 32, 64, 64, 64, 64]
@@ -260,6 +262,7 @@ if __name__ == '__main__':
             learn('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_mono, learn_kwargs, device=device)
 
             test('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_link, model_kwargs_mono, device=device)
+            quit()
 
 
 

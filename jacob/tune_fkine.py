@@ -28,6 +28,7 @@ if __name__ == '__main__':
     learn_kwargs['batch_size'] = 10 
     learn_kwargs['n_iter'] = 10 
     learn_kwargs['append'] = False
+    learn_kwargs['refine'] = False
     
     out_dir = 'results/tunning_fkine'
     total = 2*1*2*2*2*7
