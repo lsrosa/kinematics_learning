@@ -139,7 +139,7 @@ if __name__ == '__main__':
             'lr': tune.loguniform(1e-5, 1e-3),
             'nh': tune.choice([i for i in range(2, 8)]),
             'sh': tune.choice([2**i for i in range(3, 7)]),
-            'batch_size': tune.choice([2**i for i in range(5)]),
+            'batch_size': tune.choice([2**i for i in range(3, 7)]),
             }
 
     learn_kwargs = dict()

@@ -12,24 +12,29 @@ The $\nn$ modules are implemented using PyTorch \cite{pytorch}, allowing for int
 
 In order to assure appropriate hyper-parameters for $\nn$, we use Ray Tune \cite{liaw2018tune} with Optuna \cite{optuna_2019} as search engine.
 %
-The hyper-parameters search space presented in Table \ref{tab: hyperparams search space} for robots $\nDims=\{2, 3\}$ and $\nJoints=\{2,\ldots,7\}$
+The hyper-parameters are sampled in the interval presented in Table \ref{tab: hyperparams search space}, 
 \footnote{We use an Intel i9 computer with 16GB of RAM and without GPU.}.
 %
-We empirically found that $nSamples=10^3$, $epochs=1000$, $nIterations=50$, are appropriated values for the hyper-parameters of Algorithm \ref{alg: train nn}.
+We empirically found that $nSamples=100$, $epochs=2000$, and $nIterations=25$ are appropriated values for the hyper-parameters of Algorithm \ref{alg: train nn} during tuning.
 
 \begin{table}[h]
 	\centering
-	\caption{$\nn$ hyper-parameters search space}
+	\caption{$\nn$ hyper-parameters search space. ``log uniform'' sampling chooses a random number in an uniform distribution in the log of the given range, ``categorical'' sampling chooses a random value from the range list.}
 	\label{tab: hyperparams search space}
-	\begin{tabulary}{\linewidth}{c|c}
+	\begin{tabulary}{\linewidth}{c|c|c}
 		\toprule
-		hyper-parameter & values \\\midrule
-		$\learningRate$ & $10^{-3}$, $10^{-4}$, $10^{-5}$\\\hline
-		$\nLayers$ & $2$, $3$, $4$, $5$, $6$ \\\hline
-		$\layerSize$ & $4$, $8$, $16$, $32$, $64$ \\
+		hyper-parameter & sampling & range \\\midrule
+		$\learningRate$ & log uniform & $\left[10^{-5}, 10^{-3}\right]$\\\hline
+		$\nLayers$ & categorical & $\left[2, 3, 4, 5, 6, 7, 8\right]$ \\\hline
+		$\layerSize$ & categorical & $\left[8, 16, 32, 64, 128\right]$ \\\hline
+		$batchSize$ & categorical & $\left[1, 2, 4, 8, 16, 32\right]$ \\
 		\bottomrule
 	\end{tabulary}
 \end{table}
+
+During the tuning process, the current $\loss$, $epochs$, and the total number of parameters in $\nn$ are passed to Optuna every $50$ epochs.
+%
+Optimizing $\loss$ leads for hyper-parameters which allow for effective learning the forward kinematics; optimizing $epochs$ incentivize the optimizer finding hyper-parameters that improve the learning sampling-efficiency; and optimizing the number of parameters gives some priority for smaller networks.
 
 Table \ref{tab: tune fkine} presents the hyper-parameters found for $\nnMono$ and $\nnLink$ for robots operating in 2D and 3D, and with $\nJoints=\{2,\ldots, 7\}$. 
 %
@@ -49,23 +54,27 @@ As result, the proposed architecture is expected to scale better with $\nJoints$
 		\multicolumn{2}{c}{$\nJoints$} & $2$ & $3$ & $4$ & $5$ & $6$ & $7$ \\\midrule
 		\multirow{3}{*}{$\nnMono$} & $\learningRate$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ \\\cline{2-8}
 		& $\nLayers$ & $4$ & $5$ & $5$ & $6$ & $6$ & $6$ \\\cline{2-8}
-		& $\layerSize$ & $32$ & $32$ & $64$ & $64$ & $64$ & $64$ \\
+		& $\layerSize$ & $32$ & $32$ & $64$ & $64$ & $64$ & $64$ \\\cline{2-8}
+		& $batchSize$ & $a$ & $a$ & $a$ & $a$ & $a$ & $a$ \\
 		\midrule
 		\multicolumn{8}{c}{$\nDims=3$} \\\hline
 		\multirow{3}{*}{$\nnMono$} & $\learningRate$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ \\\cline{2-8}
 		& $\nLayers$ & $4$ & $5$ & $5$ & $6$ & $6$ & $6$ \\\cline{2-8}
-		& $\layerSize$ & $32$ & $32$ & $64$ & $64$ & $64$ & $64$ \\
+		& $\layerSize$ & $32$ & $32$ & $64$ & $64$ & $64$ & $64$ \\\cline{2-8}
+		& $batchSize$ & $a$ & $a$ & $a$ & $a$ & $a$ & $a$ \\
 		\midrule
 		\midrule
 		\multicolumn{8}{c}{$\nDims=2$} \\\hline
 		\multirow{3}{*}{$\nnLink$} & $\learningRate$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ \\\cline{2-8}
 		& $\nLayers$ & $3$ & $3$ & $3$ & $3$ & $3$ & $3$  \\\cline{2-8}
-		& $\layerSize$ & $32$ & $32$ & $32$ &  $32$ & $32$ & $32$\\
+		& $\layerSize$ & $32$ & $32$ & $32$ &  $32$ & $32$ & $32$\\\cline{2-8}
+		& $batchSize$ & $a$ & $a$ & $a$ & $a$ & $a$ & $a$ \\
 		\midrule
 		\multicolumn{8}{c}{$\nDims=3$} \\\hline
 		\multirow{3}{*}{$\nnLink$} & $\learningRate$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$  \\\cline{2-8}
 		& $\nLayers$ & $3$ & $3$ & $3$ & $3$ & $3$ & $3$  \\\cline{2-8}
-		& $\layerSize$ & $32$ & $32$ & $32$ &  $32$ & $32$ & $32$\\
+		& $\layerSize$ & $32$ & $32$ & $32$ &  $32$ & $32$ & $32$\\\cline{2-8}
+		& $batchSize$ & $a$ & $a$ & $a$ & $a$ & $a$ & $a$ \\
 		\bottomrule
 	\end{tabulary}
 \end{table}
