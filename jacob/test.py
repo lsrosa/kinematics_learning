@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import json
 
 from stable_baselines3.common.env_util import make_vec_env
 
@@ -77,12 +78,9 @@ def validate(models_dir, model_kwargs, device=device):
             y_pred = fkine_net(q)
     error = (y-y_pred).abs().norm(dim=1).mean()
     print('validation error: ', error)
-    return error.detach().cpu().numpy()
+    return error.detach().cpu().tolist()
 
 def learn_wrap(config, max_epochs, out_dir, model_kwargs, learn_kwargs, device=device):
-    print('Learning with the hyper-params:\n')
-    print(config)
-
     ls = learn_kwargs['learn_steps']
     learn_kwargs = learn_kwargs.copy()
      
@@ -100,23 +98,28 @@ def learn_wrap(config, max_epochs, out_dir, model_kwargs, learn_kwargs, device=d
             start_epoch = checkpoint_state["epoch"]
     else:
         start_epoch = 0
-    
     tune_dir = home_dir/out_dir/('reacher%dd%dj'%(model_kwargs['n_dims'], model_kwargs['n_joints']))
+    
+    learn_kwargs['learn_steps'] = 0
     for i in range(start_epoch, max_epochs):
         learn_kwargs['learn_steps'] += ls
         learn(tune_dir/'models', tune_dir/'results', tune_dir/'plots', model_kwargs, learn_kwargs, device=device) 
         val_loss = validate(tune_dir/'models', model_kwargs, device=device)
-   
-    with tempfile.TemporaryDirectory() as checkpoint_dir:
+        
+        print('\n\n Saving: ', val_loss, type(val_loss), '   ts:', learn_kwargs['learn_steps'], '\n\n')
+        with tempfile.TemporaryDirectory() as checkpoint_dir:
             data_path = path(checkpoint_dir) / "data.pkl"
             with open(data_path, "wb") as fp:
                 pickle.dump(out_dir, fp)
 
             checkpoint = Checkpoint.from_directory(checkpoint_dir)
-            train.report(
-                {"loss": val_loss},
+            train.report({
+                "loss": val_loss,
+                "learn_steps": learn_kwargs['learn_steps']
+                },
                 checkpoint=checkpoint,
             )
+            print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
     return
 
 if __name__ == '__main__':
@@ -149,22 +152,27 @@ if __name__ == '__main__':
                 model_kwargs['n_dims'] = n_dims 
 
                 scheduler = ASHAScheduler(
+                        time_attr="learn_steps",
                         metric="loss",
                         mode="min",
-                        max_t=1, #max_num_epochs,
+                        max_t=5, #max_num_epochs,
                         grace_period=1,
                         reduction_factor=2,
                         )
                 
                 result = tune.run(
                         partial(learn_wrap, max_epochs=5, out_dir=out_dir, model_kwargs=model_kwargs, learn_kwargs=learn_kwargs, device=device),
-                        resources_per_trial={"cpu": 2, "gpu": 1},
+                        resources_per_trial={"cpu": 1, "gpu": 1},
                         config=config,
                         num_samples=10, #num_samples,
                         scheduler=scheduler,
                 )
                 
                 best_trial = result.get_best_trial("loss", "min", "last")
+                tune_dir = home_dir/out_dir/('reacher%dd%dj'%(n_dims, n_joints))
+                with open(tune_dir/'tunned_hyperparams.json', 'w') as f:
+                    json.dump(best_trial.config, f)
+                
                 print(f"Best trial config: {best_trial.config}")
                 print(f"Best trial final validation loss: {best_trial.last_result['loss']}")
                 quit()

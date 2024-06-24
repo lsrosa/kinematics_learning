@@ -236,8 +236,8 @@ if __name__ == '__main__':
     learn_kwargs['n_envs'] = 32 
     learn_kwargs['batch_size'] = 10 
     learn_kwargs['n_iter'] = 10
-    learn_kwargs['append'] = True 
-    learn_kwargs['refine'] = False 
+    learn_kwargs['append'] = False 
+    learn_kwargs['refine'] = True 
     
     mono_n_hidden = [4, 5, 5, 6, 6, 6]
     mono_s_hidden = [32, 32, 64, 64, 64, 64]

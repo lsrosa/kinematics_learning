@@ -18,6 +18,9 @@ from pathlib import Path as path
 
 def learn(models_dir, results_dir, plots_dir, model_kwargs, learn_kwargs, device, plot=False):
     model_kwargs = model_kwargs.copy()
+    models_dir = path(models_dir)
+    results_dir = path(results_dir)
+    plots_dir = path(plots_dir)
 
     if 'env_models_home' in model_kwargs:
         env_models_home = path(model_kwargs.pop('env_models_home'))
@@ -131,13 +134,14 @@ def learn(models_dir, results_dir, plots_dir, model_kwargs, learn_kwargs, device
     if learn_kwargs['refine']:
         if losses.shape[0] == 0:
             losses = mean_losses
+            durations = _durs
         else:
             losses = np.hstack((losses, mean_losses))
-        durations = durations + _durs
+            durations = durations + _durs
     else:
         losses = np.vstack((losses, mean_losses))
         durations = np.hstack((durations, _durs))
-    
+
     # Save durations and losses
     with open(results_dir/(fkine_file+'.pickle'), 'wb') as h:
         pickle.dump((losses, durations), h)

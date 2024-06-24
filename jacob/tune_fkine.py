@@ -5,10 +5,22 @@ from stable_baselines3.common.env_util import make_vec_env
 
 # Import our model
 from fkine.learn import learn
+from fkine.fkine_linked import FKineLinked
+from fkine.fkine_monolithic import FKineMono
+from utils import *
 
 # Utility stuff
-from matplotlib import pyplot as plt
 from utils import * 
+from pathlib import Path as path
+
+# Tuner
+import tempfile
+from functools import partial
+from ray import tune
+from ray import train
+from ray.train import Checkpoint, get_checkpoint
+from ray.tune.schedulers import ASHAScheduler
+import ray.cloudpickle as pickle
 
 # check device
 if torch.cuda.is_available():
@@ -19,34 +31,140 @@ else:
     device = 'cpu'
     print("Using CPU")
 
+home_dir = path.cwd()
+
+def validate(models_dir, model_kwargs, device=device):
+    model_kwargs = model_kwargs.copy()
+    model_kwargs.pop('env_models_home')
+
+    fkine_model = model_kwargs.pop('model')
+    _suffix = model_kwargs_2_str(**model_kwargs)
+    fkine_file = "fkine_%s"%(fkine_model)+_suffix
+
+    n_dims = model_kwargs['n_dims'] 
+    n_joints = model_kwargs['n_joints'] 
+    
+    env_kwargs={'model_file':home_dir/('rgym/envs/assets/reacher%dd%dj.xml'%(n_dims, n_joints))}
+    env = make_env(**env_kwargs)
+    obs = env.reset()[0]
+
+    fkine_model_file = sorted(list(models_dir.glob("%s*.pt"%(fkine_file))))[0]
+
+    errors = [] 
+    n_samples = 100
+    y, y_dot, q, q_dot = [], [], [], []
+    
+    print('Using: ', FKineLinked)
+    fkine_net = eval(fkine_model)(**model_kwargs, device=device)
+    fkine_net.load_state_dict(torch.load(fkine_model_file, map_location=torch.device(device)))
+    fkine_net = fkine_net.to(device)
+    
+    for sample in range(n_samples):
+        action = env.action_space.sample() 
+        obs, reward, terminated, truncated, info = env.step(action)
+        q.append(obs['q'].copy())
+        q_dot.append(obs['qdot'].copy())
+        y.append(obs['x'].copy())
+        y_dot.append(obs['xdot'].copy())
+
+    y = torch.Tensor(np.array(y)).to(device)
+    q = torch.Tensor(np.array(q)).to(device)
+    
+    with torch.no_grad():
+        if fkine_model == 'FKineLinked':
+            y_pred, _ = fkine_net(q)
+        elif fkine_model == 'FKineMono':
+            y_pred = fkine_net(q)
+    error = (y-y_pred).abs().norm(dim=1).mean()
+    print('validation error: ', error)
+    return error.detach().cpu().numpy()
+
+def learn_wrap(config, max_epochs, out_dir, model_kwargs, learn_kwargs, device=device):
+    print('Learning with the hyper-params:\n')
+    print(config)
+
+    ls = learn_kwargs['learn_steps']
+    learn_kwargs = learn_kwargs.copy()
+     
+    learn_kwargs['batch_size'] = config['batch_size'] 
+    model_kwargs['lr'] = config['lr']
+    model_kwargs['n_hidden'] = config['nh']
+    model_kwargs['size_hidden'] = config['sh']
+   
+    checkpoint = get_checkpoint()
+    if checkpoint:
+        with checkpoint.as_directory() as checkpoint_dir:
+            data_path = path(out_dir) / "data.pkl"
+            with open(data_path, "rb") as fp:
+                checkpoint_state = pickle.load(fp)
+            start_epoch = checkpoint_state["epoch"]
+    else:
+        start_epoch = 0
+    
+    tune_dir = home_dir/out_dir/('reacher%dd%dj'%(model_kwargs['n_dims'], model_kwargs['n_joints']))
+    for i in range(start_epoch, max_epochs):
+        learn_kwargs['learn_steps'] += ls
+        learn(tune_dir/'models', tune_dir/'results', tune_dir/'plots', model_kwargs, learn_kwargs, device=device) 
+        val_loss = validate(tune_dir/'models', model_kwargs, device=device)
+   
+    with tempfile.TemporaryDirectory() as checkpoint_dir:
+            data_path = path(checkpoint_dir) / "data.pkl"
+            with open(data_path, "wb") as fp:
+                pickle.dump(out_dir, fp)
+
+            checkpoint = Checkpoint.from_directory(checkpoint_dir)
+            train.report(
+                {"loss": val_loss},
+                checkpoint=checkpoint,
+            )
+    return
+
 if __name__ == '__main__':
+    config = {
+            'lr': tune.loguniform(1e-6, 1e-2),
+            'nh': tune.choice([i for i in range(2, 8)]),
+            'sh': tune.choice([2**i for i in range(3, 7)]),
+            'batch_size': tune.choice([2**i for i in range(5)]),
+            }
+
     learn_kwargs = dict()
     learn_kwargs['seed'] = 1
     learn_kwargs['n_rollouts'] = 100
-    learn_kwargs['learn_steps'] = 300 
+    learn_kwargs['learn_steps'] = 5 
     learn_kwargs['n_envs'] = 32 
-    learn_kwargs['batch_size'] = 10 
     learn_kwargs['n_iter'] = 10 
     learn_kwargs['append'] = False
-    learn_kwargs['refine'] = False
+    learn_kwargs['refine'] = True 
     
     out_dir = 'results/tunning_fkine'
-    total = 2*1*2*2*2*7
-    curr = 1
-    for model in ['FKineLinked', 'FKineMono']:
-        for lr in [1e-4]:#, 1e-5]:
-            for nh in [5, 6]:
-                for sh in [32, 64]:
-                    for n_dims in [2, 3]:
-                        for n_joints in [2, 3, 4, 5, 6, 7]:
-                            print('curr: %d, out of %d'%(curr, total))
-                            model_kwargs = dict()
-                            model_kwargs['model'] = model 
-                            model_kwargs['lr'] = lr
-                            model_kwargs['n_hidden'] = nh
-                            model_kwargs['size_hidden'] = sh 
-                            model_kwargs['n_joints'] = n_joints 
-                            model_kwargs['n_dims'] = n_dims 
+    
+    model_kwargs = dict()
+    model_kwargs['env_models_home'] = path.cwd()
 
-                            learn(out_dir, out_dir, out_dir, model_kwargs, learn_kwargs, device=device) 
-                            curr += 1
+    for model in ['FKineLinked', 'FKineMono']:
+        for n_dims in [2, 3]:
+            for n_joints in [2, 3, 4, 5, 6, 7]:
+                model_kwargs['model'] = model 
+                model_kwargs['n_joints'] = n_joints 
+                model_kwargs['n_dims'] = n_dims 
+
+                scheduler = ASHAScheduler(
+                        metric="loss",
+                        mode="min",
+                        max_t=1, #max_num_epochs,
+                        grace_period=1,
+                        reduction_factor=2,
+                        )
+                
+                result = tune.run(
+                        partial(learn_wrap, max_epochs=5, out_dir=out_dir, model_kwargs=model_kwargs, learn_kwargs=learn_kwargs, device=device),
+                        resources_per_trial={"cpu": 2, "gpu": 1},
+                        config=config,
+                        num_samples=10, #num_samples,
+                        scheduler=scheduler,
+                )
+                
+                best_trial = result.get_best_trial("loss", "min", "last")
+                print(f"Best trial config: {best_trial.config}")
+                print(f"Best trial final validation loss: {best_trial.last_result['loss']}")
+                quit()
