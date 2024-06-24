@@ -12,14 +12,15 @@ from utils import *
 import json
 
 POLICY_TYPE = SAC
-
 net_arch = {
-        "t2": [32, 32],
-        "t3": [32, 32, 32],
-        "t4": [32, 32, 32, 32],
-        "s2": [64, 64],
-        "s3": [64, 64, 64],
-        "s4": [64, 64, 64, 64],
+        "t4": [32 for i in range(4)],
+        "t8": [32 for i in range(8)],
+        "s4": [64 for i in range(4)],
+        "s8": [64 for i in range(8)],
+        "m4": [128 for i in range(4)],
+        "m8": [128 for i in range(8)],
+        "l4": [256 for i in range(4)],
+        "l8": [256 for i in range(8)],
     }
 
 # check device
