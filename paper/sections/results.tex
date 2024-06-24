@@ -10,11 +10,12 @@ The $\nn$ modules are implemented using PyTorch \cite{pytorch}, allowing for int
 
 \subsection{Parameters Tuning}\label{subsec: tuning}
 
-In order to assure appropriate hyper-parameters for $\nn$, we perform an exhaustive search over the space presented in Table \ref{tab: hyperparams search space} for robots $\nDims=\{2, 3\}$ and $\nJoints=\{2,\ldots,7\}$, leading to training a total of $1050$ models, which takes roughly $2$ days of processing in a standard computer\footnote{We use an Intel i9 computer with 16GB of RAM and without GPU.}.
+In order to assure appropriate hyper-parameters for $\nn$, we use Ray Tune \cite{liaw2018tune} with Optuna \cite{optuna_2019} as search engine.
 %
-The exhaustive search is repeated $30$ times, and the final hyper-parameter values are chosen as the ones which yield the smallest \gls{nn} (regarding its total number of parameters) and that guarantee an average final loss over the last $10$ epochs $\leq0.05$. 
+The hyper-parameters search space presented in Table \ref{tab: hyperparams search space} for robots $\nDims=\{2, 3\}$ and $\nJoints=\{2,\ldots,7\}$
+\footnote{We use an Intel i9 computer with 16GB of RAM and without GPU.}.
 %
-We empirically found that $nSamples=10^3$, $epochs=500$, $nIterations=50$, $batchSize=100$ are appropriated values for the hyper-parameters of Algorithm \ref{alg: train nn}.
+We empirically found that $nSamples=10^3$, $epochs=1000$, $nIterations=50$, are appropriated values for the hyper-parameters of Algorithm \ref{alg: train nn}.
 
 \begin{table}[h]
 	\centering
