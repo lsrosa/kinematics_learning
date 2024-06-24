@@ -81,10 +81,12 @@ def validate(models_dir, model_kwargs, device=device):
     return error.detach().cpu().tolist()
 
 def learn_wrap(config, max_epochs, out_dir, model_kwargs, learn_kwargs, device=device):
+    tune_dir = home_dir/out_dir/('reacher%dd%dj'%(model_kwargs['n_dims'], model_kwargs['n_joints']))
+
     ls = learn_kwargs['learn_steps']
-    learn_kwargs = learn_kwargs.copy()
+    _learn_kwargs = learn_kwargs.copy()
+    _learn_kwargs['batch_size'] = config['batch_size'] 
      
-    learn_kwargs['batch_size'] = config['batch_size'] 
     model_kwargs['lr'] = config['lr']
     model_kwargs['n_hidden'] = config['nh']
     model_kwargs['size_hidden'] = config['sh']
@@ -98,12 +100,14 @@ def learn_wrap(config, max_epochs, out_dir, model_kwargs, learn_kwargs, device=d
             start_epoch = checkpoint_state["epoch"]
     else:
         start_epoch = 0
-    tune_dir = home_dir/out_dir/('reacher%dd%dj'%(model_kwargs['n_dims'], model_kwargs['n_joints']))
     
-    learn_kwargs['learn_steps'] = 0
+    _ls = 0
     for i in range(start_epoch, max_epochs):
-        learn_kwargs['learn_steps'] += ls
-        learn(tune_dir/'models', tune_dir/'results', tune_dir/'plots', model_kwargs, learn_kwargs, device=device) 
+        _ls += ls
+        print('!!!!!!!!!!!!!!!!!!!!!!!!!1!!!!!!!!', _learn_kwargs['learn_steps'], _ls, i)
+        _learn_kwargs['learn_steps'] = _ls
+        print('!!!!!!!!!!!!!!!!!!!!!!!!!1!!!!!!!!', _learn_kwargs['learn_steps'], _ls, i)
+        learn(tune_dir/'models', tune_dir/'results', tune_dir/'plots', model_kwargs, _learn_kwargs, device=device) 
         val_loss = validate(tune_dir/'models', model_kwargs, device=device)
         
         with tempfile.TemporaryDirectory() as checkpoint_dir:
@@ -111,13 +115,16 @@ def learn_wrap(config, max_epochs, out_dir, model_kwargs, learn_kwargs, device=d
             with open(data_path, "wb") as fp:
                 pickle.dump(out_dir, fp)
 
+            print("!!!!!!!!!!!aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
             checkpoint = Checkpoint.from_directory(checkpoint_dir)
+            print("!!!!!!!!!!!2aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
             train.report({
                 "loss": val_loss,
-                "learn_steps": learn_kwargs['learn_steps']
+                "learn_steps": _learn_kwargs['learn_steps']
                 },
                 checkpoint=checkpoint,
             )
+            print("!!!!!!!!!!!3aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
     return
 
 if __name__ == '__main__':
@@ -131,7 +138,7 @@ if __name__ == '__main__':
     learn_kwargs = dict()
     learn_kwargs['seed'] = 1
     learn_kwargs['n_rollouts'] = 100
-    learn_kwargs['learn_steps'] = 100 
+    learn_kwargs['learn_steps'] = 10 
     learn_kwargs['n_envs'] = 32 
     learn_kwargs['n_iter'] = 10
     learn_kwargs['append'] = False
@@ -144,10 +151,9 @@ if __name__ == '__main__':
     model_kwargs['env_models_home'] = path.cwd()
     tune_dir.mkdir(exist_ok=True, parents=True)
     if device == 'cpu':
-        resources = {"cpu": 4}
+        resources = {"cpu": 1}
     else:
         resources = {"cpu": 4, "gpu": 1}
-
 
     for model in ['FKineLinked', 'FKineMono']:
         for n_dims in [2, 3]:
@@ -160,7 +166,7 @@ if __name__ == '__main__':
                         time_attr="learn_steps",
                         metric="loss",
                         mode="min",
-                        max_t=5, #max_num_epochs,
+                        max_t=1, #max_num_epochs,
                         grace_period=1,
                         reduction_factor=2,
                         )
@@ -169,7 +175,7 @@ if __name__ == '__main__':
                         partial(learn_wrap, max_epochs=5, out_dir=out_dir, model_kwargs=model_kwargs, learn_kwargs=learn_kwargs, device=device),
                         resources_per_trial=resources,
                         config=config,
-                        num_samples=15, #num_samples,
+                        num_samples=1, #num_samples,
                         scheduler=scheduler,
                         storage_path=tune_dir/('reacher%dd%dj_tunning_results'%(n_dims, n_joints)),
                 )
@@ -181,4 +187,3 @@ if __name__ == '__main__':
                 
                 print(f"Best trial config: {best_trial.config}")
                 print(f"Best trial final validation loss: {best_trial.last_result['loss']}")
-                quit()
