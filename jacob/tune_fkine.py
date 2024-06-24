@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 import json
+import pandas as pd
 
 from stable_baselines3.common.env_util import make_vec_env
 
@@ -20,7 +21,9 @@ from functools import partial
 from ray import tune
 from ray import train
 from ray.train import Checkpoint, get_checkpoint
-from ray.tune.schedulers import ASHAScheduler
+from ray.tune.search import ConcurrencyLimiter
+from ray.tune.schedulers import AsyncHyperBandScheduler
+from ray.tune.search.optuna import OptunaSearch
 import ray.cloudpickle as pickle
 
 # check device
@@ -77,10 +80,15 @@ def validate(models_dir, model_kwargs, device=device):
         elif fkine_model == 'FKineMono':
             y_pred = fkine_net(q)
     error = (y-y_pred).abs().norm(dim=1).mean()
-    print('validation error: ', error)
-    return error.detach().cpu().tolist()
+    loss = error.detach().cpu().tolist()
 
-def learn_wrap(config, max_epochs, out_dir, model_kwargs, learn_kwargs, device=device):
+    num_params = 0
+    for p in fkine_net.parameters():
+        num_params += p.numel()
+    print("Validation Loss: ", loss)
+    return loss, num_params
+
+def learn_wrap(config, max_epochs, out_dir, model_kwargs, learn_kwargs, target_loss, device=device):
     tune_dir = home_dir/out_dir/('reacher%dd%dj'%(model_kwargs['n_dims'], model_kwargs['n_joints']))
 
     ls = learn_kwargs['learn_steps']
@@ -104,32 +112,31 @@ def learn_wrap(config, max_epochs, out_dir, model_kwargs, learn_kwargs, device=d
     _ls = 0
     for i in range(start_epoch, max_epochs):
         _ls += ls
-        print('!!!!!!!!!!!!!!!!!!!!!!!!!1!!!!!!!!', _learn_kwargs['learn_steps'], _ls, i)
         _learn_kwargs['learn_steps'] = _ls
-        print('!!!!!!!!!!!!!!!!!!!!!!!!!1!!!!!!!!', _learn_kwargs['learn_steps'], _ls, i)
         learn(tune_dir/'models', tune_dir/'results', tune_dir/'plots', model_kwargs, _learn_kwargs, device=device) 
-        val_loss = validate(tune_dir/'models', model_kwargs, device=device)
+        val_loss, num_params = validate(tune_dir/'models', model_kwargs, device=device)
         
         with tempfile.TemporaryDirectory() as checkpoint_dir:
             data_path = path(checkpoint_dir) / "data.pkl"
             with open(data_path, "wb") as fp:
                 pickle.dump(out_dir, fp)
 
-            print("!!!!!!!!!!!aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
             checkpoint = Checkpoint.from_directory(checkpoint_dir)
-            print("!!!!!!!!!!!2aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
             train.report({
                 "loss": val_loss,
-                "learn_steps": _learn_kwargs['learn_steps']
+                'learn_steps': _ls,
+                'num_params': num_params,
                 },
-                checkpoint=checkpoint,
+                checkpoint=checkpoint
             )
-            print("!!!!!!!!!!!3aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+        if val_loss < target_loss:
+            print("Target loss achieved. Breaking")
+            break
     return
 
 if __name__ == '__main__':
     config = {
-            'lr': tune.loguniform(1e-6, 1e-2),
+            'lr': tune.loguniform(1e-5, 1e-3),
             'nh': tune.choice([i for i in range(2, 8)]),
             'sh': tune.choice([2**i for i in range(3, 7)]),
             'batch_size': tune.choice([2**i for i in range(5)]),
@@ -138,9 +145,9 @@ if __name__ == '__main__':
     learn_kwargs = dict()
     learn_kwargs['seed'] = 1
     learn_kwargs['n_rollouts'] = 100
-    learn_kwargs['learn_steps'] = 10 
+    learn_kwargs['learn_steps'] = 50
     learn_kwargs['n_envs'] = 32 
-    learn_kwargs['n_iter'] = 10
+    learn_kwargs['n_iter'] = 25
     learn_kwargs['append'] = False
     learn_kwargs['refine'] = True 
     
@@ -151,7 +158,7 @@ if __name__ == '__main__':
     model_kwargs['env_models_home'] = path.cwd()
     tune_dir.mkdir(exist_ok=True, parents=True)
     if device == 'cpu':
-        resources = {"cpu": 1}
+        resources = {"cpu": 4}
     else:
         resources = {"cpu": 4, "gpu": 1}
 
@@ -161,29 +168,35 @@ if __name__ == '__main__':
                 model_kwargs['model'] = model 
                 model_kwargs['n_joints'] = n_joints 
                 model_kwargs['n_dims'] = n_dims 
+                hyper_params_file = tune_dir/('reacher%dd%dj_hyperparams.pickle'%(n_dims, n_joints))
+                if hyper_params_file.exists():
+                    print("Already tunned parameters fount in %s. Skipping"%(hyper_params_file.as_posix()))
+                    continue
 
-                scheduler = ASHAScheduler(
-                        time_attr="learn_steps",
-                        metric="loss",
-                        mode="min",
-                        max_t=1, #max_num_epochs,
-                        grace_period=1,
-                        reduction_factor=2,
+                searcher = OptunaSearch(
+                        metric = ['loss', 'learn_steps', 'num_params'],
+                        mode = ['min', 'min', 'min']
                         )
-                
-                result = tune.run(
-                        partial(learn_wrap, max_epochs=5, out_dir=out_dir, model_kwargs=model_kwargs, learn_kwargs=learn_kwargs, device=device),
-                        resources_per_trial=resources,
-                        config=config,
-                        num_samples=1, #num_samples,
-                        scheduler=scheduler,
-                        storage_path=tune_dir/('reacher%dd%dj_tunning_results'%(n_dims, n_joints)),
-                )
-                print(result, type(result)) 
-                best_trial = result.get_best_trial("loss", "min", "last")
-                
-                with open(tune_dir/('reacher%dd%dj_hyperparams'%(n_dims, n_joints)), 'w') as f:
-                    json.dump(best_trial.config, f)
-                
-                print(f"Best trial config: {best_trial.config}")
-                print(f"Best trial final validation loss: {best_trial.last_result['loss']}")
+                algo = ConcurrencyLimiter(searcher, max_concurrent=4)
+                scheduler = AsyncHyperBandScheduler(grace_period=5, max_t=100, metric="loss", mode="min")
+                trainable = tune.with_resources(
+                        partial(learn_wrap, max_epochs=20, out_dir=out_dir, model_kwargs=model_kwargs, learn_kwargs=learn_kwargs, target_loss=0.2, device=device),
+                        resources 
+                        )
+                tuner = tune.Tuner(
+                        trainable,
+                        tune_config=tune.TuneConfig(
+                            search_alg=algo,
+                            num_samples=10, 
+                            scheduler=scheduler,
+                            ),
+                        run_config=train.RunConfig(
+                            storage_path=out_dir/('reacher%dd%dj_tunning_results'%(n_dims, n_joints)),
+                            ),
+                        param_space=config,
+                        )
+                result = tuner.fit()
+
+                results_df = result.get_dataframe()
+                print('results: ', results_df)
+                results_df.to_pickle(hyper_params_file)
