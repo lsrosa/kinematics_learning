@@ -265,10 +265,10 @@ if __name__ == '__main__':
     learn_kwargs_link = dict()
     learn_kwargs_link['seed'] = 1
     learn_kwargs_link['n_rollouts'] = 100
-    learn_kwargs_link['learn_steps'] = 100 
+    learn_kwargs_link['learn_steps'] = 1000 
     learn_kwargs_link['n_envs'] = 32 
     #learn_kwargs_link['batch_size'] = 10 
-    learn_kwargs_link['n_iter'] = 10
+    learn_kwargs_link['n_iter'] = 25 
     learn_kwargs_link['append'] = False 
     learn_kwargs_link['refine'] = True 
     learn_kwargs_mono = learn_kwargs_link.copy()

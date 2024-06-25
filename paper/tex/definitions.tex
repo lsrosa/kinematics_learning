@@ -25,6 +25,7 @@
 \newcommand{\predLink}{\prediction{\vector{x}}^{l}}
 \newcommand{\nLayers}{l_n}
 \newcommand{\layerSize}{l_s}
+\newcommand{\nParams}{|\nn|}
 \newcommand{\learningRate}{lr}
 
 % General math
@@ -33,7 +34,28 @@
 \renewcommand{\vector}[1]{\mathrm{\mathbf{#1}}}
 \newcommand{\normalDist}[2]{\mathcal{N}(#1, #2)}
 
+% Learning
+\newcommand{\epochs}{epochs}
+\newcommand{\nSamples}{nSamples}
+\newcommand{\memory}{mem}
+\newcommand{\nIterations}{nIter}
+\newcommand{\batchSize}{bs}
+\newcommand{\meanLoss}{\bar{\loss}}
+
+
 % RL
 \newcommand{\policy}{\Pi}
 \newcommand{\linksLenght}{\vector{d}}
 \newcommand{\var}{\sigma}
+
+%software
+\newcommand{\softwareFont}[1]{\texttt[1]}
+\newcommand{\optuna}{\softwareFont{Optuna}}
+\newcommand{\ray}{\softwareFont{Ray Tune}}
+\newcommand{\zoo}{\softwareFont{RL-Zoo}}
+\newcommand{\gym}{\softwareFont{Gym}}
+\newcommand{\mujoco}{\softwareFont{MuJoCo}}
+\newcommand{\torch}{\softwareFont{PyTorch}}
+\newcommand{\autograd}{\softwareFont{Autograd}}
+\newcommand{\sac}{\softwareFont{SAC}}
+\renewcommand{\sb}{\softwareFont{Stable-baselines3}}

@@ -41,30 +41,30 @@ In contrast, since we perform the training in simulation, we have the flexibilit
 Since in this stage we use simulation, both $\nnMono$ and $\nnLink$ are trained in a straight-forward 
 fashion according to Algorithm \ref{alg: train nn}.
 %
-For each epoch of training, $nSamples$ random poses are sampled in joint space (line $3$), and the respective Cartesian position of each joint is obtained directly from the simulator (line $4$) and added to a memory buffer (line $5$).
+For each epoch of training, $\nSamples$ random poses are sampled in joint space (line $3$), and the respective Cartesian position of each joint is obtained directly from the simulator (line $4$) and added to a $\memory$ memory buffer (line $5$).
 %
-The memory size is limited, and upon additions further than its limit, it drops a percentage of its oldest data (we use a $10\%$ data drop in all experiments) for reducing data allocation overheads.
+The size of $\memory$ is limited, and upon additions further than its limit, it drops a percentage of its oldest data (we use a $10\%$ data drop in all experiments) for reducing data allocation overheads.
 %
-Next, $nIterations$ of training is done with the data already within the memory, which are done by randomly sampling $batchSize$ samples from the memory (line $8$), computing the average loss (lines $9$ to $14$), which is then back-propagated through the network (line $15$) with an $\learningRate$ learning rate.
+Next, $\nIterations$ iterations of training are done with the data within $\memory$ by randomly sampling $\batchSize$ samples from the memory (line $8$), computing the average loss (lines $9$ to $14$), which is then back-propagated through the network (line $15$) with an $\learningRate$ learning rate.
  
 \begin{algorithm}
 	\caption{Training procedure for $\nn$.}\label{alg: train nn}
-	\For{$e \in \{1,\hdots, epochs\}$}{
-		\For{$r \in \{1,\hdots, nSamples\}$}{
+	\For{$e \in \{1,\hdots, \epochs\}$}{
+		\For{$r \in \{1,\hdots, \nSamples\}$}{
 			$q\leftarrow$ random joint positions\;
 			$x\leftarrow$ Cartesian position of all joints given $q$\;
-			add $(q, x)$ to $memory$\;
+			add $(q, x)$ to $\memory$\;
 		}
 		
-		\For{$t\in\{1,\hdots,nIterations\}$}{
-			$(qs, xs)\leftarrow$ get $batchSize$ random samples from $memory$\; 
-			$meanLoss\leftarrow0$\;
+		\For{$t\in\{1,\hdots,\nIterations\}$}{
+			$(qs, xs)\leftarrow$ get $\batchSize$ random samples from $\memory$\; 
+			$\meanLoss\leftarrow0$\;
 			\For{$(q, x) \in (qs, xs)$}{
-				$meanLoss\leftarrow meanLoss+\loss$\;
+				$\meanLoss\leftarrow \meanLoss+\loss$\;
 			}
 		}
-		$meanLoss\leftarrow meanLoss/batchSize$\;
-		backpropagate($meanLoss$, $\learningRate$) through $\nn$\; 
+		$\meanLoss\leftarrow \meanLoss/\nIterations$\;
+		backpropagate($\meanLoss$, $\learningRate$) through $\nn$\; 
 	}
 \end{algorithm}
 

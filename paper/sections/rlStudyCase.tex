@@ -16,20 +16,13 @@ Furthermore, more elaborated transfer-learning approaches \cite{stuber2018featur
 
 The results in this section are limited to the 3D and a robot with $7$ joints, and the second part of the learning is also done in simulation. 
 %
-This limitation is due to the extensive long time necessary to tune, and learn $\policy$, and then to adapt both $\nn$ and $\policy$ to the new environment, since in the \gls{rl} loop, the reward is sparse and the robot performs a random-walk sampling.
+%This limitation is due to the extensive long time necessary to tune, and learn $\policy$, and then to adapt both $\nn$ and $\policy$ to the new environment, since in the \gls{rl} loop, the reward is sparse and the robot performs a random-walk sampling.
 
-Figure \ref{fig: learning policy} presents the reward for the first step, where we can see...
-
-\begin{figure}
-	\includegraphics[width=\linewidth]{example-image-a}
-	\caption{Reward for learning $\policy$ using the pre-trained $\nn$.}
-	\label{fig: learning policy}
-\end{figure}
-
-Figure \ref{fig: adapting policy} presents the reward for the second step, showing that ...
+For $\policy$ we use a \sac from \sb \cite{stablebaselines3}, and $\nn$ is introduced into the \sac as such its outputs are the inputs of \sac's features extraction step. 
+Figure \ref{fig: learn and adapt policy} presents the rewards obtained in both steps, where we can see...
 
 \begin{figure}
 	\includegraphics[width=\linewidth]{example-image-a}
-	\caption{Reward for learning $\policy$ for the modified robot using the pre-trained $\nn$ and $\policy$.}
-	\label{fig: adapting policy}
+	\caption{Reward for learning $\policy$ using the pre-trained $\nn$, and for adapting $\policy$ to the modified robot using.}
+	\label{fig: learn and adapt policy}
 \end{figure}

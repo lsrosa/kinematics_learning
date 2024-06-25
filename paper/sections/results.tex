@@ -2,19 +2,19 @@
 
 \subsection{Testing Environment}\label{subsec: test env}
 
-We build upon the \texttt{Reacher-v4} environment from OpenAI Gym \cite{gym}, which consists of a 2D serial manipulator with $2$ joints simulated using MuJoCo \cite{todorov2012mujoco}.
+We build upon the \texttt{Reacher-v4} environment from OpenAI \gym \cite{gym}, which consists of a 2D serial manipulator with $2$ joints simulated using \mujoco \cite{todorov2012mujoco}.
 %
 In order to evaluate the proposed approach for more realistic robots, we extend the environment enabling for 3D, and adding models for robots up to $7$ joints\footnote{Publicly available source code: \href{https://github.com/lsrosa/kinematics\_learning}{https://github.com/lsrosa/kinematics\_learning}}.
 
-The $\nn$ modules are implemented using PyTorch \cite{pytorch}, allowing for integration with OpenAI Gym, and the derivatives used in Section \ref{subsec: loss and acc} are computed using PyTorch's Autograd \cite{paszke2017automatic}.
+The $\nn$ modules are implemented using \torch \cite{pytorch}, allowing for integration with \gym, and the derivatives used in Section \ref{subsec: loss and acc} are computed using \torch's \autograd \cite{paszke2017automatic}.
 
 \subsection{Parameters Tuning}\label{subsec: tuning}
 
-In order to assure appropriate hyper-parameters for $\nn$, we use Ray Tune \cite{liaw2018tune} with Optuna \cite{optuna_2019} as search engine and a Asynchronous Hyper-Band \cite{li2018massively} as Scheduler.
+In order to assure appropriate hyper-parameters for $\nn$, we use \ray \cite{liaw2018tune} with \optuna \cite{optuna2019} as search engine and a \softwareFont{Asynchronous Hyper-Band} \cite{li2018massively} as scheduler.
 %
 The hyper-parameters are sampled in the interval presented in Table \ref{tab: hyperparams search space}, 
 %
-We empirically found that $nSamples=100$, $epochs=2000$, and $nIterations=25$ are appropriated values for the hyper-parameters of Algorithm \ref{alg: train nn} during tuning.
+We empirically found that $\nSamples=100$, $\epochs=2000$, and $\nIterations=25$ are appropriated values tuning hyper-parameters for Algorithm \ref{alg: train nn}.
 
 \begin{table}[h]
 	\centering
@@ -26,21 +26,23 @@ We empirically found that $nSamples=100$, $epochs=2000$, and $nIterations=25$ ar
 		$\learningRate$ & log uniform & $\left[10^{-5}, 10^{-3}\right]$\\\hline
 		$\nLayers$ & categorical & $\left[2, 3, 4, 5, 6, 7, 8\right]$ \\\hline
 		$\layerSize$ & categorical & $\left[8, 16, 32, 64, 128\right]$ \\\hline
-		$batchSize$ & categorical & $\left[8, 16, 32, 64, 128\right]$ \\
+		$\batchSize$ & categorical & $\left[8, 16, 32, 64, 128\right]$ \\
 		\bottomrule
 	\end{tabulary}
 \end{table}
 
-During the tuning process, the current $\loss$, $epochs$, and the total number of parameters in $\nn$ are passed to Optuna every $50$ epochs.
+During the tuning process, the current $\loss$, $\epochs$, and the total number of parameters in $\nn$ ($\nParams$) are passed to \optuna every $50$ epochs.
 %
-Optimizing $\loss$ leads for hyper-parameters which allow for effective learning the forward kinematics; optimizing $epochs$ incentivize the optimizer finding hyper-parameters that improve the learning sampling-efficiency; and optimizing the number of parameters gives some priority for smaller networks.
+Optimizing $\loss$ leads for hyper-parameters which allow for effective learning the forward kinematics; optimizing $\epochs$ incentivize the optimizer finding hyper-parameters that improve the learning sampling-efficiency; and optimizing $\nParams$ gives priority for smaller networks.
 
+A total of $50$ hyper-parameters samples are computed and collected by \ray, and the final values are given by the sample with smallest $\loss$ among the Pareto dominating samples according to $\loss$, $\epochs$, and $\nParams$. 
+%
 Table \ref{tab: tune fkine} presents the hyper-parameters found for $\nnMono$ and $\nnLink$ for robots operating in 2D and 3D, and with $\nJoints=\{2,\ldots, 7\}$. 
 %
 The found hyper-parameters values demonstrate the consequences of using a monolithic architecture: the complexity of the function being approximated grows with $\nJoints$ (as described in Equation \ref{eq: x estimate in function of q}), and hence a larger \gls{nn} is more suitable.
 %
 In comparison, the function being approximated with the proposed architecture is constant in $\nJoints$, and increasing $\nJoints$ increases the number of approximators linearly.
-
+%
 As result, the proposed architecture is expected to scale better with $\nJoints$ than its monolithic counterpart, both in precision and sample efficiency.
  
 \begin{table}[h]
@@ -54,26 +56,26 @@ As result, the proposed architecture is expected to scale better with $\nJoints$
 		\multirow{3}{*}{$\nnMono$} & $\learningRate$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ \\\cline{2-8}
 		& $\nLayers$ & $4$ & $5$ & $5$ & $6$ & $6$ & $6$ \\\cline{2-8}
 		& $\layerSize$ & $32$ & $32$ & $64$ & $64$ & $64$ & $64$ \\\cline{2-8}
-		& $batchSize$ & $a$ & $a$ & $a$ & $a$ & $a$ & $a$ \\
+		& $\batchSize$ & $a$ & $a$ & $a$ & $a$ & $a$ & $a$ \\
 		\midrule
 		\multicolumn{8}{c}{$\nDims=3$} \\\hline
 		\multirow{3}{*}{$\nnMono$} & $\learningRate$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ \\\cline{2-8}
 		& $\nLayers$ & $4$ & $5$ & $5$ & $6$ & $6$ & $6$ \\\cline{2-8}
 		& $\layerSize$ & $32$ & $32$ & $64$ & $64$ & $64$ & $64$ \\\cline{2-8}
-		& $batchSize$ & $a$ & $a$ & $a$ & $a$ & $a$ & $a$ \\
+		& $\batchSize$ & $a$ & $a$ & $a$ & $a$ & $a$ & $a$ \\
 		\midrule
 		\midrule
 		\multicolumn{8}{c}{$\nDims=2$} \\\hline
 		\multirow{3}{*}{$\nnLink$} & $\learningRate$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ \\\cline{2-8}
 		& $\nLayers$ & $3$ & $3$ & $3$ & $3$ & $3$ & $3$  \\\cline{2-8}
 		& $\layerSize$ & $32$ & $32$ & $32$ &  $32$ & $32$ & $32$\\\cline{2-8}
-		& $batchSize$ & $a$ & $a$ & $a$ & $a$ & $a$ & $a$ \\
+		& $\batchSize$ & $a$ & $a$ & $a$ & $a$ & $a$ & $a$ \\
 		\midrule
 		\multicolumn{8}{c}{$\nDims=3$} \\\hline
 		\multirow{3}{*}{$\nnLink$} & $\learningRate$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$  \\\cline{2-8}
 		& $\nLayers$ & $3$ & $3$ & $3$ & $3$ & $3$ & $3$  \\\cline{2-8}
 		& $\layerSize$ & $32$ & $32$ & $32$ &  $32$ & $32$ & $32$\\\cline{2-8}
-		& $batchSize$ & $a$ & $a$ & $a$ & $a$ & $a$ & $a$ \\
+		& $\batchSize$ & $a$ & $a$ & $a$ & $a$ & $a$ & $a$ \\
 		\bottomrule
 	\end{tabulary}
 \end{table}
@@ -83,7 +85,7 @@ As result, the proposed architecture is expected to scale better with $\nJoints$
 
 The models are trained with the hyper-parameters found according to Section \ref{subsec: tuning}.
 %
-The training budget is set as $1000$ epochs with $nSamples=100$ and $nIterations=25$.
+The training budget is set as $1000$ epochs with $\nSamples=100$ and $\nIterations=25$.
 
 Figure \ref{fig: loss fkines} presents the losses when learning $\nnMono$ and $\nnLink$, which shows that the proposed architecture outperforms the monolithic approach found used in the literature.
 
