@@ -8,6 +8,7 @@ from stable_baselines3.common.env_util import make_vec_env
 from fkine.fkine_linked import FKineLinked
 from fkine.fkine_monolithic import FKineMono
 from fkine.learn import learn
+from fkine.fkine_common import get_hyper_params
 
 # Utility stuff
 from matplotlib import pyplot as plt
@@ -256,27 +257,29 @@ def test(models_dir, results_dir, plots_dir, model_kwargs_link, model_kwargs_mon
     return
 
 if __name__ == '__main__':
+    hyperparams_dir = path.cwd()/'results/tunning_fkine'
     model_kwargs_link = dict()
-    model_kwargs_link['lr'] = 5e-4#[1e-5, 1e-6, 1e-7]
+    #model_kwargs_link['lr'] = 5e-4#[1e-5, 1e-6, 1e-7]
     model_kwargs_mono = model_kwargs_link.copy()
 
-    learn_kwargs = dict()
-    learn_kwargs['seed'] = 1
-    learn_kwargs['n_rollouts'] = 100
-    learn_kwargs['learn_steps'] = 1000 
-    learn_kwargs['n_envs'] = 32 
-    learn_kwargs['batch_size'] = 10 
-    learn_kwargs['n_iter'] = 10
-    learn_kwargs['append'] = False 
-    learn_kwargs['refine'] = True 
+    learn_kwargs_link = dict()
+    learn_kwargs_link['seed'] = 1
+    learn_kwargs_link['n_rollouts'] = 100
+    learn_kwargs_link['learn_steps'] = 1000 
+    learn_kwargs_link['n_envs'] = 32 
+    #learn_kwargs_link['batch_size'] = 10 
+    learn_kwargs_link['n_iter'] = 10
+    learn_kwargs_link['append'] = False 
+    learn_kwargs_link['refine'] = True 
+    learn_kwargs_mono = learn_kwargs_link.copy()
     
-    mono_n_hidden = [4, 5, 5, 6, 6, 6]
-    mono_s_hidden = [32, 32, 64, 64, 64, 64]
-
+    hyperparam_files = sorted(list(hyperparams_dir.glob('reacher*_hyperparams.pickle')))
+    print(hyperparam_files)
+    quit()
     for n_dims in [3]: #2, 3]:
         for _nj, n_joints in enumerate([7]):#:2, 3, 4, 5, 6, 7]):
-            model_kwargs_link['n_dims'] = n_dims 
-            model_kwargs_link['n_joints'] = n_joints
+            #model_kwargs_link['n_dims'] = n_dims 
+            #model_kwargs_link['n_joints'] = n_joints
             # these are constant for fkine linked
             model_kwargs_link['n_hidden'] = 3
             model_kwargs_link['size_hidden'] = 32

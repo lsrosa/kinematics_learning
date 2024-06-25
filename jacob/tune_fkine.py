@@ -168,7 +168,7 @@ if __name__ == '__main__':
                 model_kwargs['model'] = model 
                 model_kwargs['n_joints'] = n_joints 
                 model_kwargs['n_dims'] = n_dims 
-                hyper_params_file = tune_dir/('reacher%dd%dj_hyperparams.pickle'%(n_dims, n_joints))
+                hyper_params_file = tune_dir/('reacher%dd%dj_%s_hyperparams.pickle'%(n_dims, n_joints, model))
                 if hyper_params_file.exists():
                     print("Already tunned parameters fount in %s. Skipping"%(hyper_params_file.as_posix()))
                     continue

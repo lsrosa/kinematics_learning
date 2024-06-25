@@ -6,6 +6,29 @@ import timeit
 from torch.utils.data import Dataset, DataLoader 
 from stable_baselines3.common.callbacks import BaseCallback
 
+from pathlib import Path as path
+import pandas
+from paretoset import paretoset
+
+#------------- Read and choose hyperparams ------------
+def get_hyper_params(hp_file):
+    metrics = pandas.read_pickle(hp_file).filter(['loss', 'learn_steps', 'num_params'])
+    configs = pandas.read_pickle(hp_file).filter(['config/lr', 'config/nh', 'config/sh', 'config/batch_size'])
+    
+    mask = paretoset(metrics, sense=['min', 'min', 'min'])
+    best_configs = configs.get(mask)
+    best_metrics = metrics.get(mask)
+    
+    idx = best_metrics['loss'].idxmin()
+    _best_config = best_configs.loc[idx].to_dict()
+    
+    # update dictionary keys
+    best_config = dict((k.replace('config/','').replace('nh', 'n_hidden').replace('sh', 'size_hidden'), v) for (k, v) in _best_config.items())
+    
+    learn_config = dict((k, best_config[k]) for k in ['batch_size'])
+    model_config = dict((k, best_config[k]) for k in ['lr', 'n_hidden', 'size_hidden'])
+    return learn_config, model_config 
+
 #------------------- Incremental Dataset --------------
 class IncrDataset(Dataset):
     def __init__(self, size=0, max_size=1e5, dropout_size=None):
