@@ -27,6 +27,8 @@ else:
     print("Using CPU")
 
 def test(models_dir, results_dir, plots_dir, model_kwargs_link, model_kwargs_mono, device):
+    plt.rcParams['text.usetex'] = True
+
     model_kwargs_link['model'] = None
     model_kwargs_mono['model'] = None
     _suffix_link = model_kwargs_2_str(**model_kwargs_link)
@@ -48,7 +50,7 @@ def test(models_dir, results_dir, plots_dir, model_kwargs_link, model_kwargs_mon
     error_y_dot_link = []
     error_y_dot_mono = []
     
-    n_samples = 100
+    n_samples = 10
     for fkine_link_model_file, fkine_mono_model_file in zip(fkine_link_model_files, fkine_mono_model_files):
         y, y_dot, q, q_dot = [], [], [], []
         _run_link = str.replace(fkine_link_model_file, models_dir+fkine_link_file, '').replace('.pt', '')
@@ -66,8 +68,6 @@ def test(models_dir, results_dir, plots_dir, model_kwargs_link, model_kwargs_mon
         
         env.reset() 
         for sample in range(n_samples):
-            if np.random.rand()>0.8:
-                env.reset()
             action = env.action_space.sample() 
             obs, reward, terminated, truncated, info = env.step(action)
             q.append(obs['q'].copy())
@@ -133,41 +133,42 @@ def test(models_dir, results_dir, plots_dir, model_kwargs_link, model_kwargs_mon
         error_y_dot_link.append(abs(y_dot_pred_plot_link - y_dot_plot))
         error_y_dot_mono.append(abs(y_dot_pred_plot_mono - y_dot_plot))
         
-        _titles = []
+        palette = itertools.cycle(seaborn.color_palette())
+        colors = [list(next(palette)) for i in range(3)]
+        dashes = [[4, 4], [6, 1], [3, 9]] 
+        _y_labels = []
         for d in range(n_dims):
             for j in range(n_joints):
-                _titles += ['x%d%d'%(j,d)]
-        _labels = ['ground truthl', 'linked', 'monolithic']
+                _y_labels += [r'$x_{%d,%d}$'%(j,d)]
+        _labels = ['Linked', 'Monolithic', 'Ground Truth']
         _suffix = '%dd%dj'%(n_dims, n_joints) 
-        plt.figure()
-        for d in range(n_dims):       
-            for j in range(n_joints):
-                idx = j+d*n_joints
-                plt.subplot(n_dims, n_joints, idx+1)
-                plt.gca().set_prop_cycle(None)
-                plt.plot(y_plot[:,idx], alpha = 0.5, marker='.')
-                plt.plot(y_pred_plot_link[:,idx], alpha = 0.5, ls='--', marker='x')
-                plt.plot(y_pred_plot_mono[:,idx], alpha = 0.5, ls = '-.', marker='s')
-                plt.title(_titles[idx])
-        plt.legend(_labels)
-        plt.savefig(plots_dir+'/fkine_predictions_x%s%s.png'%(_suffix, _run), dpi=1200)
+        
+        fig, axs = plt.subplots(n_dims, n_joints, sharex='all', figsize=(4*n_dims, 4*n_joints))
+        for i, ax in enumerate(axs.flat):
+            idx = j+d*n_joints
+            df = pandas.DataFrame({'Linked': y_pred_plot_link[:,i], 'Monolithic': y_pred_plot_mono[:,i], 'Ground Truth': y_plot[:,i]})
+            seaborn.lineplot(df, ax=ax, alpha=0.5, dashes=dashes, markers=['x', '+', '4'], palette=colors, legend=False)
+            ax.set_xlabel('Step')
+            ax.set_ylabel(_y_labels[i])
+            if j == n_joints-1:
+                plt.legend(_labels)
+        plt.savefig(plots_dir+'/fkine_predictions_x%s%s.pdf'%(_suffix, _run), dpi=1200, bbox_inches='tight')
         plt.close()
 
-        _titles = []
+        _y_labels = []
         for d in range(n_dims):
-            _titles += ['vee%d'%d]
+            _y_labels += [r'$\dot{x}_{%d,%d}$'%(n_joints, d)]
+        #_y_labels = np.array(_titles).reshape((n_dims, 1))
 
-        _titles = np.array(_titles).reshape((n_dims, 1))
-        fig = plt.figure()
-        for d in range(n_dims):       
-            plt.subplot(n_dims, 1, d+1)
-            plt.gca().set_prop_cycle(None)
-            plt.plot(y_dot_plot[:,d], alpha = 0.5, marker='.')
-            plt.plot(y_dot_pred_plot_link[:,d], alpha = 0.5, ls='--', marker='x')
-            plt.plot(y_dot_pred_plot_mono[:,d], alpha = 0.5, ls='-.', marker='s')
-            plt.title(_titles[d])
-        plt.legend(_labels)
-        plt.savefig(plots_dir+'/fkine_predictions_xdot%s%s.png'%(_suffix, _run), dpi=1200)
+        fig, axs = plt.subplots(n_dims, 1, sharex='all', figsize=(4*1, 4*2))
+        for i, ax in enumerate(axs.flat):
+            df = pandas.DataFrame({'Linked': y_dot_pred_plot_link[:,d], 'Monolithic': y_dot_pred_plot_mono[:,d], 'Ground Truth': y_dot_plot[:,d]})
+            seaborn.lineplot(df, ax=ax, alpha=0.5, dashes=dashes, markers=['x', '+', '4'], palette=colors, legend=False)
+            ax.set_xlabel('Step')
+            ax.set_ylabel(_y_labels[i])
+            if j == n_joints-1:
+                plt.legend(_labels)
+        plt.savefig(plots_dir+'/fkine_predictions_xdot%s%s.pdf'%(_suffix, _run), dpi=1200, bbox_inches='tight')
         plt.close() 
 
         error_joints_link = (y_pred_link.cpu() - y).norm(dim=1).transpose(0,1)
@@ -175,22 +176,19 @@ def test(models_dir, results_dir, plots_dir, model_kwargs_link, model_kwargs_mon
         _min_error = min(error_joints_link.min(), error_joints_mono.min())
         _max_error = max(error_joints_link.max(), error_joints_mono.max())
         bins = np.linspace(_min_error*0.9, _max_error*1.1, 20)
-        labels = ['Linked', 'Monolithic']
+        _labels = ['Linked', 'Monolithic']
         fig, axs = plt.subplots(1, n_joints, sharex='all', sharey='all', figsize=(4*n_joints, 4*1))
-        palette = itertools.cycle(seaborn.color_palette())
-        color = [[np.array(next(palette))] for i in range(2)]
         for j, ax in enumerate(axs.flat):
-            plt.gca().set_prop_cycle(None)
             df = pandas.DataFrame({'Linked': error_joints_link[j]})
-            seaborn.histplot(data=df, bins=bins, palette=color[0], stat='percent', shrink=0.8, ax=ax, legend=False, common_bins=False, kde=False)
+            seaborn.histplot(data=df, bins=bins, palette=colors[0], stat='percent', shrink=0.8, ax=ax, legend=False, common_bins=False, kde=False)
             df = pandas.DataFrame({'Monolithic': error_joints_mono[j]})
-            seaborn.histplot(data=df, bins=bins, palette=color[1], stat='percent', shrink=0.8, ax=ax, legend=False, common_bins=False, kde=False)
+            seaborn.histplot(data=df, bins=bins, palette=colors[1], stat='percent', shrink=0.8, ax=ax, legend=False, common_bins=False, kde=False)
             ax.title.set_text('Joint %d'%(j+1))
             ax.set_xlabel('Error')
             if j == 0:
                 ax.set_ylabel('# Samples (%)')
             if j == n_joints-1:
-                plt.legend(labels)
+                plt.legend(_labels)
         plt.savefig(plots_dir+'/fkine_errors_hist_x%s%s.pdf'%(_suffix, _run), dpi=1200, bbox_inches='tight')
         plt.close() 
 
@@ -199,12 +197,12 @@ def test(models_dir, results_dir, plots_dir, model_kwargs_link, model_kwargs_mon
     error_y_dot_link = np.array(error_y_dot_link)
     error_y_dot_mono = np.array(error_y_dot_mono)
 
+    '''
     _titles = []
     for d in range(n_dims):
         for j in range(n_joints):
             _titles += ['x%d%d'%(j,d)]
     steps = np.linspace(1, n_samples, n_samples)
-    
     plt.figure()
     for d in range(n_dims):       
         for j in range(n_joints):
@@ -221,7 +219,9 @@ def test(models_dir, results_dir, plots_dir, model_kwargs_link, model_kwargs_mon
     plt.legend()
     plt.savefig(plots_dir+'/fkine_errors_x%s.png'%(_suffix), dpi=1200)
     plt.close()
-    
+    '''
+
+    ''' 
     plt.figure()
     for d in range(n_dims):       
         idx = d#j+d*n_joints
@@ -237,6 +237,7 @@ def test(models_dir, results_dir, plots_dir, model_kwargs_link, model_kwargs_mon
     plt.legend()
     plt.savefig(plots_dir+'/fkine_errors_x_dot%s.png'%(_suffix), dpi=1200)
     plt.close()
+    '''
 
     with open(results_dir+fkine_link_file+'.pickle', 'rb') as h:
         losses_link, duration = pickle.load(h)
@@ -259,7 +260,6 @@ def test(models_dir, results_dir, plots_dir, model_kwargs_link, model_kwargs_mon
 if __name__ == '__main__':
     hyperparams_dir = path.cwd()/'results/tunning_fkine'
     model_kwargs_link = dict()
-    #model_kwargs_link['lr'] = 5e-4#[1e-5, 1e-6, 1e-7]
     model_kwargs_mono = model_kwargs_link.copy()
 
     learn_kwargs_link = dict()
@@ -267,7 +267,6 @@ if __name__ == '__main__':
     learn_kwargs_link['n_rollouts'] = 100
     learn_kwargs_link['learn_steps'] = 1000 
     learn_kwargs_link['n_envs'] = 32 
-    #learn_kwargs_link['batch_size'] = 10 
     learn_kwargs_link['n_iter'] = 25 
     learn_kwargs_link['append'] = False 
     learn_kwargs_link['refine'] = True 

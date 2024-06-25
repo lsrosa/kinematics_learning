@@ -183,14 +183,14 @@ if __name__ == '__main__':
                 algo = ConcurrencyLimiter(searcher, max_concurrent=4)
                 scheduler = AsyncHyperBandScheduler(grace_period=5, max_t=100, metric="loss", mode="min")
                 trainable = tune.with_resources(
-                        partial(learn_wrap, max_epochs=40, out_dir=out_dir, model_kwargs=model_kwargs, learn_kwargs=learn_kwargs, target_loss=0.015, device=device),
+                        partial(learn_wrap, max_epochs=1, out_dir=out_dir, model_kwargs=model_kwargs, learn_kwargs=learn_kwargs, target_loss=0.015, device=device),
                         resources 
                         )
                 tuner = tune.Tuner(
                         trainable,
                         tune_config=tune.TuneConfig(
                             search_alg=algo,
-                            num_samples=50, 
+                            num_samples=2, 
                             scheduler=scheduler,
                             ),
                         run_config=train.RunConfig(

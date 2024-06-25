@@ -14,7 +14,7 @@ from paretoset import paretoset
 def get_hyper_params(hp_file):
     metrics = pandas.read_pickle(hp_file).filter(['loss', 'learn_steps', 'num_params'])
     configs = pandas.read_pickle(hp_file).filter(['config/lr', 'config/nh', 'config/sh', 'config/batch_size'])
-    
+
     mask = paretoset(metrics, sense=['min', 'min', 'min'])
     best_configs = configs.get(mask)
     best_metrics = metrics.get(mask)
