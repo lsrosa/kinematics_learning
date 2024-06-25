@@ -137,6 +137,8 @@ def learn_wrap(config, max_epochs, out_dir, model_kwargs, learn_kwargs, target_l
 if __name__ == '__main__':
     out_dir = home_dir/'tunning_fkine'
     tune_dir = home_dir/'results'/'tunning_fkine'
+    out_dir.mkdir(exist_ok=True, parents=True)
+    tune_dir.mkdir(exist_ok=True, parents=True)
 
     config = {
             'lr': tune.loguniform(1e-5, 1e-3),
