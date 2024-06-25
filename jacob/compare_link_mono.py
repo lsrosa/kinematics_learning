@@ -42,15 +42,15 @@ def test(models_dir, results_dir, plots_dir, model_kwargs_link, model_kwargs_mon
     env = make_env(**env_kwargs)
     obs = env.reset()[0]
     
-    fkine_link_model_files = sorted(glob(models_dir+fkine_link_file+"*.pt"))
-    fkine_mono_model_files = sorted(glob(models_dir+fkine_mono_file+"*.pt"))
+    fkine_link_model_files = sorted(list(glob(models_dir+fkine_link_file+"*.pt")))
+    fkine_mono_model_files = sorted(list(glob(models_dir+fkine_mono_file+"*.pt")))
     
     error_y_link = []
     error_y_mono = []
     error_y_dot_link = []
     error_y_dot_mono = []
     
-    n_samples = 10
+    n_samples = 100
     for fkine_link_model_file, fkine_mono_model_file in zip(fkine_link_model_files, fkine_mono_model_files):
         y, y_dot, q, q_dot = [], [], [], []
         _run_link = str.replace(fkine_link_model_file, models_dir+fkine_link_file, '').replace('.pt', '')
@@ -134,40 +134,37 @@ def test(models_dir, results_dir, plots_dir, model_kwargs_link, model_kwargs_mon
         error_y_dot_mono.append(abs(y_dot_pred_plot_mono - y_dot_plot))
         
         palette = itertools.cycle(seaborn.color_palette())
-        colors = [list(next(palette)) for i in range(3)]
-        dashes = [[4, 4], [6, 1], [3, 9]] 
+        colors = [next(palette) for i in range(3)]
+        
         _y_labels = []
         for d in range(n_dims):
             for j in range(n_joints):
                 _y_labels += [r'$x_{%d,%d}$'%(j,d)]
-        _labels = ['Linked', 'Monolithic', 'Ground Truth']
         _suffix = '%dd%dj'%(n_dims, n_joints) 
         
         fig, axs = plt.subplots(n_dims, n_joints, sharex='all', figsize=(4*n_dims, 4*n_joints))
-        for i, ax in enumerate(axs.flat):
-            idx = j+d*n_joints
-            df = pandas.DataFrame({'Linked': y_pred_plot_link[:,i], 'Monolithic': y_pred_plot_mono[:,i], 'Ground Truth': y_plot[:,i]})
-            seaborn.lineplot(df, ax=ax, alpha=0.5, dashes=dashes, markers=['x', '+', '4'], palette=colors, legend=False)
-            ax.set_xlabel('Step')
-            ax.set_ylabel(_y_labels[i])
-            if j == n_joints-1:
-                plt.legend(_labels)
+        for d in range(n_dims):
+            for j in range(n_joints):
+                idx = j+d*n_joints
+                ax = axs[d, j]
+                df = pandas.DataFrame({'Linked': y_pred_plot_link[:,idx], 'Monolithic': y_pred_plot_mono[:,idx], 'Ground Truth': y_plot[:,idx]})
+                seaborn.lineplot(df, ax=ax, alpha=0.5, palette=colors, legend=(j==n_joints-1))
+                ax.set_xlabel('Step')
+                ax.set_ylabel(_y_labels[idx])
         plt.savefig(plots_dir+'/fkine_predictions_x%s%s.pdf'%(_suffix, _run), dpi=1200, bbox_inches='tight')
         plt.close()
 
         _y_labels = []
         for d in range(n_dims):
             _y_labels += [r'$\dot{x}_{%d,%d}$'%(n_joints, d)]
-        #_y_labels = np.array(_titles).reshape((n_dims, 1))
 
-        fig, axs = plt.subplots(n_dims, 1, sharex='all', figsize=(4*1, 4*2))
-        for i, ax in enumerate(axs.flat):
+        fig, axs = plt.subplots(n_dims, 1, sharex='all', figsize=(4*1, 4*1))
+        for d in range(n_dims):
+            ax = axs[d]
             df = pandas.DataFrame({'Linked': y_dot_pred_plot_link[:,d], 'Monolithic': y_dot_pred_plot_mono[:,d], 'Ground Truth': y_dot_plot[:,d]})
-            seaborn.lineplot(df, ax=ax, alpha=0.5, dashes=dashes, markers=['x', '+', '4'], palette=colors, legend=False)
+            seaborn.lineplot(df, ax=ax, alpha=0.5, palette=colors, legend=(i==n_joints-1))
             ax.set_xlabel('Step')
-            ax.set_ylabel(_y_labels[i])
-            if j == n_joints-1:
-                plt.legend(_labels)
+            ax.set_ylabel(_y_labels[d])
         plt.savefig(plots_dir+'/fkine_predictions_xdot%s%s.pdf'%(_suffix, _run), dpi=1200, bbox_inches='tight')
         plt.close() 
 
@@ -178,15 +175,16 @@ def test(models_dir, results_dir, plots_dir, model_kwargs_link, model_kwargs_mon
         bins = np.linspace(_min_error*0.9, _max_error*1.1, 20)
         _labels = ['Linked', 'Monolithic']
         fig, axs = plt.subplots(1, n_joints, sharex='all', sharey='all', figsize=(4*n_joints, 4*1))
-        for j, ax in enumerate(axs.flat):
+        for j in range(n_joints):
+            ax = axs[j]
             df = pandas.DataFrame({'Linked': error_joints_link[j]})
-            seaborn.histplot(data=df, bins=bins, palette=colors[0], stat='percent', shrink=0.8, ax=ax, legend=False, common_bins=False, kde=False)
+            seaborn.histplot(data=df, bins=bins, palette=[colors[0]], stat='percent', shrink=0.8, ax=ax, legend=False, common_bins=False, kde=False)
             df = pandas.DataFrame({'Monolithic': error_joints_mono[j]})
-            seaborn.histplot(data=df, bins=bins, palette=colors[1], stat='percent', shrink=0.8, ax=ax, legend=False, common_bins=False, kde=False)
+            seaborn.histplot(data=df, bins=bins, palette=[colors[1]], stat='percent', shrink=0.8, ax=ax, legend=False, common_bins=False, kde=False)
             ax.title.set_text('Joint %d'%(j+1))
             ax.set_xlabel('Error')
             if j == 0:
-                ax.set_ylabel('# Samples (%)')
+                ax.set_ylabel(r'\# Samples (\%)')
             if j == n_joints-1:
                 plt.legend(_labels)
         plt.savefig(plots_dir+'/fkine_errors_hist_x%s%s.pdf'%(_suffix, _run), dpi=1200, bbox_inches='tight')
@@ -238,22 +236,50 @@ def test(models_dir, results_dir, plots_dir, model_kwargs_link, model_kwargs_mon
     plt.savefig(plots_dir+'/fkine_errors_x_dot%s.png'%(_suffix), dpi=1200)
     plt.close()
     '''
+    return
 
-    with open(results_dir+fkine_link_file+'.pickle', 'rb') as h:
-        losses_link, duration = pickle.load(h)
-    with open(results_dir+fkine_mono_file+'.pickle', 'rb') as h:
-        losses_mono, duration = pickle.load(h)
-    plt.figure()
-    epochs = np.linspace(1, losses_link.shape[1], losses_link.shape[1])
+def plot_loss_comparison(results_dir, plots_dir):
+    results_dir = path(results_dir)
+    plots_dir = path(plots_dir)
+    plt.rcParams['text.usetex'] = True
     
-    plt.fill_between(epochs, np.min(losses_link, axis=0), np.max(losses_link, axis=0), alpha=0.3)
-    plt.plot(epochs, np.mean(losses_link, axis=0), label='linked')
-    plt.fill_between(epochs, np.min(losses_mono, axis=0), np.max(losses_mono, axis=0), alpha=0.3)
-    plt.plot(epochs, np.mean(losses_mono, axis=0), label='monolithic')
-    plt.ylabel('loss')
-    plt.xlabel('epoch')
-    plt.legend()
-    plt.savefig(plots_dir+'/fkine_link_x_mono_%s.png'%_suffix, dpi=1200)
+    fig, axs = plt.subplots(2, 7, sharex='all', figsize=(4*7, 4*1))
+    palette = itertools.cycle(seaborn.color_palette())
+    colors = [next(palette) for i in range(2)]
+    
+    for d, n_dims in enumerate([2, 3]):
+        for j, n_joints in enumerate([2, 3, 4, 5, 6, 7]):
+            loss_link_file = sorted(list(results_dir.glob("fkine_FKineLinked_%dd%dj_*.pickle"%(n_dims, n_joints))))
+            loss_mono_file = sorted(list(results_dir.glob("fkine_FKineMono_%dd%dj_*.pickle"%(n_dims, n_joints))))
+            if (not loss_link_file) or (not loss_mono_file):
+                print('cannot find losses file for', loss_link_file, loss_mono_file, '. Skipping.')
+                continue
+
+            with open(loss_link_file[0].as_posix(), 'rb') as h:
+                losses_link, duration = pickle.load(h)
+            with open(loss_mono_file[0].as_posix(), 'rb') as h:
+                losses_mono, duration = pickle.load(h)
+            
+            n_runs = losses_link.shape[0]
+            n_epochs = losses_link.shape[1]
+            epochs = np.linspace(1, n_epochs, n_epochs)
+            ax = axs[d][j]
+
+            mean_link = np.mean(losses_link, axis=0)
+            mean_mono = np.mean(losses_mono, axis=0)
+            df = pandas.DataFrame({'Linked': mean_link, 'Monolithic': mean_mono})
+
+            seaborn.lineplot(df, ax=ax, palette=colors, legend=(n_dims==2 and n_joints==2))
+            ax.set_xlabel('Epochs')
+            if n_joints==2: 
+                print('aaaaaa')
+                ax.set_ylabel(r'$\mathcal{L}$')
+            
+            std_link = 2*np.std(losses_link, axis=0)
+            std_mono = 2*np.std(losses_mono, axis=0)
+            ax.fill_between(epochs, mean_link-std_link, mean_link+std_link, alpha=0.3)
+            ax.fill_between(epochs, mean_mono-std_mono, mean_mono+std_mono, alpha=0.3)
+    plt.savefig(plots_dir/'fkine_link_x_mono.pdf', dpi=1200, bbox_inches='tight')
     plt.close()
     return
 
@@ -265,9 +291,9 @@ if __name__ == '__main__':
     learn_kwargs_link = dict()
     learn_kwargs_link['seed'] = 1
     learn_kwargs_link['n_rollouts'] = 100
-    learn_kwargs_link['learn_steps'] = 1000 
+    learn_kwargs_link['learn_steps'] = 50 
     learn_kwargs_link['n_envs'] = 32 
-    learn_kwargs_link['n_iter'] = 25 
+    learn_kwargs_link['n_iter'] = 10 
     learn_kwargs_link['append'] = False 
     learn_kwargs_link['refine'] = True 
     learn_kwargs_mono = learn_kwargs_link.copy()
@@ -299,8 +325,11 @@ if __name__ == '__main__':
             learn_kwargs_mono.update(learn_params)
             learn('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_mono, learn_kwargs_mono, device=device)
 
-            test('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_link, model_kwargs_mono, device=device)
-            quit()
+            #test('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_link, model_kwargs_mono, device=device)
+            break
+        break
+    plot_loss_comparison('compare/results', 'compare/plots')
+    quit()
 
 
 
