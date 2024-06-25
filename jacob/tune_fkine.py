@@ -135,6 +135,9 @@ def learn_wrap(config, max_epochs, out_dir, model_kwargs, learn_kwargs, target_l
     return
 
 if __name__ == '__main__':
+    out_dir = home_dir/'tunning_fkine'
+    tune_dir = home_dir/'results'/'tunning_fkine'
+
     config = {
             'lr': tune.loguniform(1e-5, 1e-3),
             'nh': tune.choice([i for i in range(2, 8)]),
@@ -151,9 +154,6 @@ if __name__ == '__main__':
     learn_kwargs['append'] = False
     learn_kwargs['refine'] = True 
     
-    out_dir = home_dir/'tunning_fkine'
-    tune_dir = home_dir/'results'/'tunning_fkine'
-    
     model_kwargs = dict()
     model_kwargs['env_models_home'] = path.cwd()
     tune_dir.mkdir(exist_ok=True, parents=True)
@@ -165,10 +165,11 @@ if __name__ == '__main__':
     for model in ['FKineLinked', 'FKineMono']:
         for n_dims in [2, 3]:
             for n_joints in [2, 3, 4, 5, 6, 7]:
+                hyper_params_file = tune_dir/('reacher%dd%dj_%s_hyperparams.pickle'%(n_dims, n_joints, model))
+
                 model_kwargs['model'] = model 
                 model_kwargs['n_joints'] = n_joints 
                 model_kwargs['n_dims'] = n_dims 
-                hyper_params_file = tune_dir/('reacher%dd%dj_%s_hyperparams.pickle'%(n_dims, n_joints, model))
                 if hyper_params_file.exists():
                     print("Already tunned parameters fount in %s. Skipping"%(hyper_params_file.as_posix()))
                     continue
@@ -180,18 +181,18 @@ if __name__ == '__main__':
                 algo = ConcurrencyLimiter(searcher, max_concurrent=4)
                 scheduler = AsyncHyperBandScheduler(grace_period=5, max_t=100, metric="loss", mode="min")
                 trainable = tune.with_resources(
-                        partial(learn_wrap, max_epochs=20, out_dir=out_dir, model_kwargs=model_kwargs, learn_kwargs=learn_kwargs, target_loss=0.015, device=device),
+                        partial(learn_wrap, max_epochs=40, out_dir=out_dir, model_kwargs=model_kwargs, learn_kwargs=learn_kwargs, target_loss=0.015, device=device),
                         resources 
                         )
                 tuner = tune.Tuner(
                         trainable,
                         tune_config=tune.TuneConfig(
                             search_alg=algo,
-                            num_samples=10, 
+                            num_samples=50, 
                             scheduler=scheduler,
                             ),
                         run_config=train.RunConfig(
-                            storage_path=out_dir/('reacher%dd%dj_tunning_results'%(n_dims, n_joints)),
+                            storage_path=out_dir/('reacher%dd%dj_%s_tunning_results'%(n_dims, n_joints, model)),
                             ),
                         param_space=config,
                         )
