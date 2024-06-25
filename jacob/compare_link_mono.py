@@ -265,7 +265,7 @@ if __name__ == '__main__':
     learn_kwargs_link = dict()
     learn_kwargs_link['seed'] = 1
     learn_kwargs_link['n_rollouts'] = 100
-    learn_kwargs_link['learn_steps'] = 1000 
+    learn_kwargs_link['learn_steps'] = 100 
     learn_kwargs_link['n_envs'] = 32 
     #learn_kwargs_link['batch_size'] = 10 
     learn_kwargs_link['n_iter'] = 10
@@ -273,27 +273,35 @@ if __name__ == '__main__':
     learn_kwargs_link['refine'] = True 
     learn_kwargs_mono = learn_kwargs_link.copy()
     
-    hyperparam_files = sorted(list(hyperparams_dir.glob('reacher*_hyperparams.pickle')))
-    print(hyperparam_files)
-    quit()
-    for n_dims in [3]: #2, 3]:
-        for _nj, n_joints in enumerate([7]):#:2, 3, 4, 5, 6, 7]):
-            #model_kwargs_link['n_dims'] = n_dims 
-            #model_kwargs_link['n_joints'] = n_joints
-            # these are constant for fkine linked
-            model_kwargs_link['n_hidden'] = 3
-            model_kwargs_link['size_hidden'] = 32
+    for n_dims in [2, 3]:
+        for _nj, n_joints in enumerate([2, 3, 4, 5, 6, 7]):
+            hp_file_link = sorted(list(hyperparams_dir.glob('reacher%dd%dj_FKineLinked_hyperparams.pickle'%(n_dims, n_joints))))
+            hp_file_mono = sorted(list(hyperparams_dir.glob('reacher%dd%dj_FKineMono_hyperparams.pickle'%(n_dims, n_joints))))
+            if (not hp_file_link) or (not hp_file_mono):
+                if not hp_file_link: print('could not find fkineLinked hyper-parameters for %dd%dj, skipping'%(n_dims, n_joints))
+                if not hp_file_mono: print('could not find fkineMono hyper-parameters for %dd%dj, skipping'%(n_dims, n_joints))
+                continue
+
             model_kwargs_link['model'] = 'FKineLinked'
-            learn('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_link, learn_kwargs, device=device)
+            model_kwargs_link['n_dims'] = n_dims 
+            model_kwargs_link['n_joints'] = n_joints
+
+            learn_params, model_params = get_hyper_params(hp_file_link[0])
+            model_kwargs_link.update(model_params)
+            learn_kwargs_link.update(learn_params)
+            learn('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_link, learn_kwargs_link, device=device)
     
+            model_kwargs_mono['model'] = 'FKineMono'
             model_kwargs_mono['n_dims'] = n_dims 
             model_kwargs_mono['n_joints'] = n_joints
-            model_kwargs_mono['n_hidden'] = mono_n_hidden[_nj]
-            model_kwargs_mono['size_hidden'] = mono_s_hidden[_nj]
-            model_kwargs_mono['model'] = 'FKineMono'
-            learn('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_mono, learn_kwargs, device=device)
+            
+            learn_params, model_params = get_hyper_params(hp_file_mono[0])
+            model_kwargs_mono.update(model_params)
+            learn_kwargs_mono.update(learn_params)
+            learn('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_mono, learn_kwargs_mono, device=device)
 
             test('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_link, model_kwargs_mono, device=device)
+            quit()
 
 
 

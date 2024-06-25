@@ -25,8 +25,9 @@ def get_hyper_params(hp_file):
     # update dictionary keys
     best_config = dict((k.replace('config/','').replace('nh', 'n_hidden').replace('sh', 'size_hidden'), v) for (k, v) in _best_config.items())
     
-    learn_config = dict((k, best_config[k]) for k in ['batch_size'])
-    model_config = dict((k, best_config[k]) for k in ['lr', 'n_hidden', 'size_hidden'])
+    learn_config = dict((k, int(best_config[k]) if k in ['batch_size'] else best_config[k]) for k in ['batch_size'])
+    model_config = dict((k, int(best_config[k]) if k in ['n_hidden', 'size_hidden'] else best_config[k]) for k in ['lr', 'n_hidden', 'size_hidden'])
+
     return learn_config, model_config 
 
 #------------------- Incremental Dataset --------------
