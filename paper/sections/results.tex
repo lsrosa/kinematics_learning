@@ -10,10 +10,9 @@ The $\nn$ modules are implemented using PyTorch \cite{pytorch}, allowing for int
 
 \subsection{Parameters Tuning}\label{subsec: tuning}
 
-In order to assure appropriate hyper-parameters for $\nn$, we use Ray Tune \cite{liaw2018tune} with Optuna \cite{optuna_2019} as search engine.
+In order to assure appropriate hyper-parameters for $\nn$, we use Ray Tune \cite{liaw2018tune} with Optuna \cite{optuna_2019} as search engine and a Asynchronous Hyper-Band \cite{li2018massively} as Scheduler.
 %
 The hyper-parameters are sampled in the interval presented in Table \ref{tab: hyperparams search space}, 
-\footnote{We use an Intel i9 computer with 16GB of RAM and without GPU.}.
 %
 We empirically found that $nSamples=100$, $epochs=2000$, and $nIterations=25$ are appropriated values for the hyper-parameters of Algorithm \ref{alg: train nn} during tuning.
 
@@ -27,7 +26,7 @@ We empirically found that $nSamples=100$, $epochs=2000$, and $nIterations=25$ ar
 		$\learningRate$ & log uniform & $\left[10^{-5}, 10^{-3}\right]$\\\hline
 		$\nLayers$ & categorical & $\left[2, 3, 4, 5, 6, 7, 8\right]$ \\\hline
 		$\layerSize$ & categorical & $\left[8, 16, 32, 64, 128\right]$ \\\hline
-		$batchSize$ & categorical & $\left[1, 2, 4, 8, 16, 32\right]$ \\
+		$batchSize$ & categorical & $\left[8, 16, 32, 64, 128\right]$ \\
 		\bottomrule
 	\end{tabulary}
 \end{table}
@@ -40,7 +39,7 @@ Table \ref{tab: tune fkine} presents the hyper-parameters found for $\nnMono$ an
 %
 The found hyper-parameters values demonstrate the consequences of using a monolithic architecture: the complexity of the function being approximated grows with $\nJoints$ (as described in Equation \ref{eq: x estimate in function of q}), and hence a larger \gls{nn} is more suitable.
 %
-In comparison, the function being approximated with the proposed architecture is constant in $\nJoints$, and increasing $\nJoints$ increases the number of approximators with constant complexity.
+In comparison, the function being approximated with the proposed architecture is constant in $\nJoints$, and increasing $\nJoints$ increases the number of approximators linearly.
 
 As result, the proposed architecture is expected to scale better with $\nJoints$ than its monolithic counterpart, both in precision and sample efficiency.
  
@@ -79,7 +78,12 @@ As result, the proposed architecture is expected to scale better with $\nJoints$
 	\end{tabulary}
 \end{table}
 
-\subsection{Loss and Accuracy Results}\label{subsec: loss and acc}
+
+\subsection{Training, Loss, and Accuracy Results}\label{subsec: loss and acc}
+
+The models are trained with the hyper-parameters found according to Section \ref{subsec: tuning}.
+%
+The training budget is set as $1000$ epochs with $nSamples=100$ and $nIterations=25$.
 
 Figure \ref{fig: loss fkines} presents the losses when learning $\nnMono$ and $\nnLink$, which shows that the proposed architecture outperforms the monolithic approach found used in the literature.
 
@@ -96,6 +100,20 @@ For qualitative comparison, Figure \ref{fig: joints position} presents the joint
 	\caption{Joints position estimation comparison for $\nnMono$ and $\nnLink$.}
 	\label{fig: joints position}
 \end{figure*}
+
+Figure \ref{fig: errors} presents the error for $1000$ predictions for $\nDims=3$ and $\nJoints=7$ for each joint, showing that the $\nnLink$ achieves a higher accuracy than $\nnMono$, which is expected due to the improved learning efficiency shown in Figure \ref{fig: loss fkines}.
+%
+Furthermore, we can observe a different characteristic for the models accuracies, for $\nnMono$ the error is evenly spread across all joints, while for $\nnLink$ the error increases for the further joints. 
+%
+This characteristic is explained by the fact that for $\nnLink$, errors are propagated from one joint to another since estimation from joint is used for computing the estimation for the next one, while for $\nnMono$ the estimation is done for all joints simultaneously.
+%
+Nevertheless, we emphasize that $\nnLink$ achieves higher accuracy for all joints, and that
+
+\begin{figure}
+	\includegraphics[width=\linewidth]{example-image-a}
+	\caption{Accuracy comparison for $\nnMono$ and $\nnLink$.}
+	\label{fig: errors}
+\end{figure}
 
 Next, to demonstrate the accuracy impacts, we estimate the end-effector velocity $\dot{\pos}_j = \left[\jacob\dot{\rotAngle{}}\right]_j$, where $\jacob$ is the unknown Jacobian matrix of the robot, as $\prediction{\dot{\pos}}_j = \left[\frac{\partial\nn}{\partial\rotAngle{}}\dot{\rotAngle{}}\right]_j$.
 %

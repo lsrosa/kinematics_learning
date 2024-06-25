@@ -11,6 +11,7 @@ from fkine.learn import learn
 
 # Utility stuff
 from matplotlib import pyplot as plt
+import seaborn, pandas, itertools
 from utils import * 
 import pickle
 from glob import glob
@@ -64,6 +65,8 @@ def test(models_dir, results_dir, plots_dir, model_kwargs_link, model_kwargs_mon
         
         env.reset() 
         for sample in range(n_samples):
+            if np.random.rand()>0.8:
+                env.reset()
             action = env.action_space.sample() 
             obs, reward, terminated, truncated, info = env.step(action)
             q.append(obs['q'].copy())
@@ -95,7 +98,7 @@ def test(models_dir, results_dir, plots_dir, model_kwargs_link, model_kwargs_mon
             
             y_dot_pred_link[i] = torch.matmul(_j_link, q_dot[i,:,None]).flatten()
             y_dot_pred_mono[i] = torch.matmul(_j_mono, q_dot[i,:,None]).flatten()
-
+            
         y_plot = np.zeros((n, n_dims*n_joints))
         y_pred_plot_link = np.zeros((n, n_dims*n_joints))
         y_pred_plot_mono = np.zeros((n, n_dims*n_joints))
@@ -147,7 +150,8 @@ def test(models_dir, results_dir, plots_dir, model_kwargs_link, model_kwargs_mon
                 plt.title(_titles[idx])
         plt.legend(_labels)
         plt.savefig(plots_dir+'/fkine_predictions_x%s%s.png'%(_suffix, _run), dpi=1200)
-        
+        plt.close()
+
         _titles = []
         for d in range(n_dims):
             _titles += ['vee%d'%d]
@@ -163,7 +167,32 @@ def test(models_dir, results_dir, plots_dir, model_kwargs_link, model_kwargs_mon
             plt.title(_titles[d])
         plt.legend(_labels)
         plt.savefig(plots_dir+'/fkine_predictions_xdot%s%s.png'%(_suffix, _run), dpi=1200)
-    
+        plt.close() 
+
+        error_joints_link = (y_pred_link.cpu() - y).norm(dim=1).transpose(0,1)
+        error_joints_mono = (y_pred_mono.cpu() - y).norm(dim=1).transpose(0,1)
+        _min_error = min(error_joints_link.min(), error_joints_mono.min())
+        _max_error = max(error_joints_link.max(), error_joints_mono.max())
+        bins = np.linspace(_min_error*0.9, _max_error*1.1, 20)
+        labels = ['Linked', 'Monolithic']
+        fig, axs = plt.subplots(1, n_joints, sharex='all', sharey='all', figsize=(4*n_joints, 4*1))
+        palette = itertools.cycle(seaborn.color_palette())
+        color = [[np.array(next(palette))] for i in range(2)]
+        for j, ax in enumerate(axs.flat):
+            plt.gca().set_prop_cycle(None)
+            df = pandas.DataFrame({'Linked': error_joints_link[j]})
+            seaborn.histplot(data=df, bins=bins, palette=color[0], stat='percent', shrink=0.8, ax=ax, legend=False, common_bins=False, kde=False)
+            df = pandas.DataFrame({'Monolithic': error_joints_mono[j]})
+            seaborn.histplot(data=df, bins=bins, palette=color[1], stat='percent', shrink=0.8, ax=ax, legend=False, common_bins=False, kde=False)
+            ax.title.set_text('Joint %d'%(j+1))
+            ax.set_xlabel('Error')
+            if j == 0:
+                ax.set_ylabel('# Samples (%)')
+            if j == n_joints-1:
+                plt.legend(labels)
+        plt.savefig(plots_dir+'/fkine_errors_hist_x%s%s.pdf'%(_suffix, _run), dpi=1200, bbox_inches='tight')
+        plt.close() 
+
     error_y_link = np.array(error_y_link)
     error_y_mono = np.array(error_y_mono)
     error_y_dot_link = np.array(error_y_dot_link)
@@ -190,6 +219,7 @@ def test(models_dir, results_dir, plots_dir, model_kwargs_link, model_kwargs_mon
             plt.ylabel('absolute x error')
     plt.legend()
     plt.savefig(plots_dir+'/fkine_errors_x%s.png'%(_suffix), dpi=1200)
+    plt.close()
     
     plt.figure()
     for d in range(n_dims):       
@@ -205,6 +235,7 @@ def test(models_dir, results_dir, plots_dir, model_kwargs_link, model_kwargs_mon
         plt.ylabel('absolute x dot error')
     plt.legend()
     plt.savefig(plots_dir+'/fkine_errors_x_dot%s.png'%(_suffix), dpi=1200)
+    plt.close()
 
     with open(results_dir+fkine_link_file+'.pickle', 'rb') as h:
         losses_link, duration = pickle.load(h)
@@ -232,7 +263,7 @@ if __name__ == '__main__':
     learn_kwargs = dict()
     learn_kwargs['seed'] = 1
     learn_kwargs['n_rollouts'] = 100
-    learn_kwargs['learn_steps'] = 5 
+    learn_kwargs['learn_steps'] = 1000 
     learn_kwargs['n_envs'] = 32 
     learn_kwargs['batch_size'] = 10 
     learn_kwargs['n_iter'] = 10
@@ -242,8 +273,8 @@ if __name__ == '__main__':
     mono_n_hidden = [4, 5, 5, 6, 6, 6]
     mono_s_hidden = [32, 32, 64, 64, 64, 64]
 
-    for n_dims in [2, 3]:
-        for _nj, n_joints in enumerate([2, 3, 4, 5, 6, 7]):
+    for n_dims in [3]: #2, 3]:
+        for _nj, n_joints in enumerate([7]):#:2, 3, 4, 5, 6, 7]):
             model_kwargs_link['n_dims'] = n_dims 
             model_kwargs_link['n_joints'] = n_joints
             # these are constant for fkine linked
@@ -260,7 +291,6 @@ if __name__ == '__main__':
             learn('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_mono, learn_kwargs, device=device)
 
             test('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_link, model_kwargs_mono, device=device)
-            quit()
 
 
 
