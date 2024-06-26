@@ -105,7 +105,7 @@ class ReacherTest(gym.Wrapper):
         for sample in range(n_samples):
             if strategy == 'walk': 
                 action = self.action_space.sample() 
-                obs, _, _, _, _ = env.step(action)
+                obs, _, _, _, _ = self.step(action)
             elif strategy == 'random': 
                 _q = self.unwrapped.sample_joints() 
                 self.unwrapped.set_joint_state(_q) 

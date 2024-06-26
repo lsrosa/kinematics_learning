@@ -68,7 +68,7 @@ def validate(models_dir, model_kwargs, n_samples, device=device):
         fkine_net.load_state_dict(torch.load(fkine_model_file, map_location=torch.device(device)))
         fkine_net = fkine_net.to(device)
         
-        q, _, y, _ = env.sample_states(n_samples, strategy='random')
+        q, _, y, _ = env.get_wrapper_attr('sample_states')(n_samples, strategy='random')
         q, y = torch.Tensor(q).to(device), torch.Tensor(y).to(device)
 
         with torch.no_grad():
