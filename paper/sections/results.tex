@@ -14,7 +14,7 @@ In order to assure appropriate hyper-parameters for $\nn$, we use \ray \cite{lia
 %
 The hyper-parameters are sampled in the interval presented in Table \ref{tab: hyperparams search space}, 
 %
-We empirically found that $\nSamples=100$, $\epochs=2000$, and $\nIterations=25$ are appropriated values tuning hyper-parameters for Algorithm \ref{alg: train nn}.
+We empirically found that $\nSamples=100$ and $\nIterations=25$ are appropriated values tuning hyper-parameters for Algorithm \ref{alg: train nn}.
 
 \begin{table}[h]
 	\centering
@@ -31,7 +31,7 @@ We empirically found that $\nSamples=100$, $\epochs=2000$, and $\nIterations=25$
 	\end{tabulary}
 \end{table}
 
-During the tuning process, the average loss over $10$ learning trials $\lossTune$, $\epochs$, and the total number of parameters in $\nn$ ($\nParams$) are passed to \optuna every $50$ $\epochs$.
+During the tuning process, the average loss over $10$ learning trials $\lossTune$, $\epochs$, and the total number of parameters in $\nn$ ($\nParams$) are passed to \optuna every $50$ $\epochs$ until $\lossTune<=0.005$ or $\epochs=2000$ are reached.
 %
 Optimizing $\lossTune$ leads for hyper-parameters which allow for effective learning the forward kinematics; optimizing $\epochs$ incentivize the optimizer finding hyper-parameters that improve the learning sampling-efficiency; and optimizing $\nParams$ gives priority for smaller networks.
 
