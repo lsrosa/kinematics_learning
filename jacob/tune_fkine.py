@@ -14,6 +14,7 @@ from utils import *
 # Utility stuff
 from utils import * 
 from pathlib import Path as path
+import os
 
 # Tuner
 import tempfile
@@ -174,8 +175,8 @@ if __name__ == '__main__':
         resources = {"cpu": 8, "gpu": 1}
 
     for model in ['FKineMono', 'FKineLinked']:
-        for n_dims in [2, 3]:
-            for n_joints in [2, 3, 4, 5, 6, 7]:
+        for n_dims in [3]:#, 2]:
+            for n_joints in [7, 6, 5, 4, 3, 2]:
                 hyper_params_file = tune_dir/('reacher%dd%dj_%s_hyperparams.pickle'%(n_dims, n_joints, model))
 
                 model_kwargs['model'] = model 
@@ -222,3 +223,7 @@ if __name__ == '__main__':
                 results_df = result.get_dataframe()
                 print('results: ', results_df)
                 results_df.to_pickle(hyper_params_file)
+
+                os.system('git add %s'%hyper_params_file.as_posix())
+                os.system('git commit -m "add hyper param"')
+                os.system('git push lsrosa tunning')
