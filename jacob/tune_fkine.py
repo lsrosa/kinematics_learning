@@ -58,7 +58,15 @@ def validate(models_dir, model_kwargs, device=device):
     n_samples = 100
     y, y_dot, q, q_dot = [], [], [], []
     
-    print('Using: ', FKineLinked)
+    # For some really weird reason eval does not work before printing the classes
+    # It probably has something to do with the class not being on the namespace before being called
+    # Weird
+    # TODO: maybe installing it as a package with pip solves the problem
+    if fkine_model == 'FKineLinked':
+        print('Using: ', FKineLinked)
+    elif fkine_model == 'FKineMono':
+        print('Using: ', FKineMono)
+
     fkine_net = eval(fkine_model)(**model_kwargs, device=device)
     fkine_net.load_state_dict(torch.load(fkine_model_file, map_location=torch.device(device)))
     fkine_net = fkine_net.to(device)
@@ -164,9 +172,9 @@ if __name__ == '__main__':
     else:
         resources = {"cpu": 4, "gpu": 1}
 
-    for model in ['FKineLinked', 'FKineMono']:
-        for n_dims in [2, 3]:
-            for n_joints in [2, 3, 4, 5, 6, 7]:
+    for n_dims in [2, 3]:
+        for n_joints in [2, 3, 4, 5, 6, 7]:
+            for model in ['FKineMono', 'FKineLinked']:
                 hyper_params_file = tune_dir/('reacher%dd%dj_%s_hyperparams.pickle'%(n_dims, n_joints, model))
 
                 model_kwargs['model'] = model 
@@ -183,14 +191,14 @@ if __name__ == '__main__':
                 algo = ConcurrencyLimiter(searcher, max_concurrent=4)
                 scheduler = AsyncHyperBandScheduler(grace_period=5, max_t=100, metric="loss", mode="min")
                 trainable = tune.with_resources(
-                        partial(learn_wrap, max_epochs=1, out_dir=out_dir, model_kwargs=model_kwargs, learn_kwargs=learn_kwargs, target_loss=0.015, device=device),
+                        partial(learn_wrap, max_epochs=40, out_dir=out_dir, model_kwargs=model_kwargs, learn_kwargs=learn_kwargs, target_loss=0.01, device=device),
                         resources 
                         )
                 tuner = tune.Tuner(
                         trainable,
                         tune_config=tune.TuneConfig(
                             search_alg=algo,
-                            num_samples=2, 
+                            num_samples=50, 
                             scheduler=scheduler,
                             ),
                         run_config=train.RunConfig(
@@ -203,3 +211,4 @@ if __name__ == '__main__':
                 results_df = result.get_dataframe()
                 print('results: ', results_df)
                 results_df.to_pickle(hyper_params_file)
+            quit()

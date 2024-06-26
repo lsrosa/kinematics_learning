@@ -312,18 +312,20 @@ if __name__ == '__main__':
             model_kwargs_link['n_joints'] = n_joints
 
             learn_params, model_params = get_hyper_params(hp_file_link[0])
+            print('link: ', learn_params, model_params)
             model_kwargs_link.update(model_params)
             learn_kwargs_link.update(learn_params)
-            learn('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_link, learn_kwargs_link, device=device)
+            #learn('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_link, learn_kwargs_link, device=device)
     
             model_kwargs_mono['model'] = 'FKineMono'
             model_kwargs_mono['n_dims'] = n_dims 
             model_kwargs_mono['n_joints'] = n_joints
             
             learn_params, model_params = get_hyper_params(hp_file_mono[0])
+            print('mono: ', learn_params, model_params)
             model_kwargs_mono.update(model_params)
             learn_kwargs_mono.update(learn_params)
-            learn('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_mono, learn_kwargs_mono, device=device)
+            #learn('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_mono, learn_kwargs_mono, device=device)
 
             #test('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_link, model_kwargs_mono, device=device)
             break
