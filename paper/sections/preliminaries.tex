@@ -7,11 +7,13 @@ The reference frames of the world and of $\joint{0}$ are fixed and coincide.
 \begin{figure}
 	\centering
 	\includegraphics[width=0.8\linewidth]{serial_manipulator.pdf}
-	\caption{A serial manipulator with $\nJoints$ axes and $\nJoints+1$ joints $\joint{i}$. Each axis is connected by a joint which is associated with a Cartesian reference frame (red, gree, blue) and can rotate over an arbitrary axis (purple).
+	\caption{A serial manipulator with $\nJoints$ axes and $\nJoints+1$ joints $\joint{i}$. Each axis (gray) is connected by a joint with a Cartesian reference frame (red, gree, blue) and can rotate over an arbitrary axis (purple).
 	%
 	We consider, without loss of generality, the position of $\joint{0}$ fixed at the world origin, and $\joint{\nJoints}$ to be the end-effector, which does not rotate.
 	%
-	The Cartesian position of joint $\joint{i}|i \in\{1,\hdots,\nJoints\}$ ($\vector{x}_i$) in the reference frame of $\joint{i_1}$ depends only on $\rotAngle{i-1}$.
+	Elements are colored according to their rotation axis if they rotate, otherwise in gray.
+	%
+	The Cartesian position of joint $\joint{i}|i \in\{1,\hdots,\nJoints\}$ ($\vector{x}_i$) in the reference frame of $\joint{i-1}$ depends only on $\rotAngle{i-1}$.
 	}
 	\label{fig: serial manipulator}
 \end{figure}

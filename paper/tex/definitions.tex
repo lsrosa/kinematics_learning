@@ -42,6 +42,8 @@
 \newcommand{\batchSize}{bs}
 \newcommand{\meanLoss}{\bar{\loss}}
 
+% Tuning
+\newcommand{\lossTune}{\meanLoss^{tune}}
 
 % RL
 \newcommand{\policy}{\Pi}
@@ -49,7 +51,7 @@
 \newcommand{\var}{\sigma}
 
 %software
-\newcommand{\softwareFont}[1]{\texttt[1]}
+\newcommand{\softwareFont}[1]{\texttt{#1}\xspace}
 \newcommand{\optuna}{\softwareFont{Optuna}}
 \newcommand{\ray}{\softwareFont{Ray Tune}}
 \newcommand{\zoo}{\softwareFont{RL-Zoo}}
