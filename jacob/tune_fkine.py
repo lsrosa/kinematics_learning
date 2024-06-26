@@ -37,7 +37,7 @@ else:
 
 home_dir = path.cwd()
 
-def validate(models_dir, model_kwargs, device=device):
+def validate(models_dir, model_kwargs, n_samples, device=device):
     model_kwargs = model_kwargs.copy()
     model_kwargs.pop('env_models_home')
 
@@ -52,12 +52,7 @@ def validate(models_dir, model_kwargs, device=device):
     env = make_env(**env_kwargs)
     obs = env.reset()[0]
 
-    fkine_model_file = sorted(list(models_dir.glob("%s*.pt"%(fkine_file))))[0]
-
-    errors = [] 
-    n_samples = 100
-    y, y_dot, q, q_dot = [], [], [], []
-    
+    fkine_model_files = sorted(list(models_dir.glob("%s*.pt"%(fkine_file))))
     # For some really weird reason eval does not work before printing the classes
     # It probably has something to do with the class not being on the namespace before being called
     # Weird
@@ -67,36 +62,32 @@ def validate(models_dir, model_kwargs, device=device):
     elif fkine_model == 'FKineMono':
         print('Using: ', FKineMono)
 
-    fkine_net = eval(fkine_model)(**model_kwargs, device=device)
-    fkine_net.load_state_dict(torch.load(fkine_model_file, map_location=torch.device(device)))
-    fkine_net = fkine_net.to(device)
-    
-    for sample in range(n_samples):
-        action = env.action_space.sample() 
-        obs, reward, terminated, truncated, info = env.step(action)
-        q.append(obs['q'].copy())
-        q_dot.append(obs['qdot'].copy())
-        y.append(obs['x'].copy())
-        y_dot.append(obs['xdot'].copy())
+    losses = [] 
+    for fkine_model_file in fkine_model_files:
+        fkine_net = eval(fkine_model)(**model_kwargs, device=device)
+        fkine_net.load_state_dict(torch.load(fkine_model_file, map_location=torch.device(device)))
+        fkine_net = fkine_net.to(device)
+        
+        q, _, y, _ = env.sample_states(n_samples, strategy='random')
+        q, y = torch.Tensor(q).to(device), torch.Tensor(y).to(device)
 
-    y = torch.Tensor(np.array(y)).to(device)
-    q = torch.Tensor(np.array(q)).to(device)
+        with torch.no_grad():
+            if fkine_model == 'FKineLinked':
+                y_pred, _ = fkine_net(q)
+            elif fkine_model == 'FKineMono':
+                y_pred = fkine_net(q)
+        error = (y-y_pred).abs().norm(dim=1).mean()
+        losses.append(error.detach().cpu().numpy())
     
-    with torch.no_grad():
-        if fkine_model == 'FKineLinked':
-            y_pred, _ = fkine_net(q)
-        elif fkine_model == 'FKineMono':
-            y_pred = fkine_net(q)
-    error = (y-y_pred).abs().norm(dim=1).mean()
-    loss = error.detach().cpu().tolist()
-
+    mean_loss = np.array(losses).mean()
+    
     num_params = 0
     for p in fkine_net.parameters():
         num_params += p.numel()
-    print("Validation Loss: ", loss)
-    return loss, num_params
+    print("Validation Loss: ", mean_loss)
+    return mean_loss, num_params
 
-def learn_wrap(config, max_epochs, out_dir, model_kwargs, learn_kwargs, target_loss, device=device):
+def learn_wrap(config, max_epochs, out_dir, model_kwargs, learn_kwargs, target_loss, n_runs, n_val_samples, device=device):
     tune_dir = home_dir/out_dir/('reacher%dd%dj'%(model_kwargs['n_dims'], model_kwargs['n_joints']))
 
     ls = learn_kwargs['learn_steps']
@@ -121,8 +112,18 @@ def learn_wrap(config, max_epochs, out_dir, model_kwargs, learn_kwargs, target_l
     for i in range(start_epoch, max_epochs):
         _ls += ls
         _learn_kwargs['learn_steps'] = _ls
-        learn(tune_dir/'models', tune_dir/'results', tune_dir/'plots', model_kwargs, _learn_kwargs, device=device) 
-        val_loss, num_params = validate(tune_dir/'models', model_kwargs, device=device)
+        # create n_runs in the first pass, after that, refine automatically applys for all runs 
+        if i == start_epoch:
+            _learn_kwargs['append'] = True 
+            _learn_kwargs['refine'] = False 
+            for run in range(n_runs):
+                learn(tune_dir/'models', tune_dir/'results', tune_dir/'plots', model_kwargs, _learn_kwargs, device=device) 
+            _learn_kwargs['append'] = False 
+            _learn_kwargs['refine'] = True
+        else: 
+            learn(tune_dir/'models', tune_dir/'results', tune_dir/'plots', model_kwargs, _learn_kwargs, device=device) 
+        
+        val_loss, num_params = validate(tune_dir/'models', model_kwargs, n_val_samples, device=device)
         
         with tempfile.TemporaryDirectory() as checkpoint_dir:
             data_path = path(checkpoint_dir) / "data.pkl"
@@ -168,13 +169,13 @@ if __name__ == '__main__':
     model_kwargs['env_models_home'] = path.cwd()
     tune_dir.mkdir(exist_ok=True, parents=True)
     if device == 'cpu':
-        resources = {"cpu": 4}
+        resources = {"cpu": 8}
     else:
-        resources = {"cpu": 4, "gpu": 1}
+        resources = {"cpu": 8, "gpu": 1}
 
-    for n_dims in [2, 3]:
-        for n_joints in [2, 3, 4, 5, 6, 7]:
-            for model in ['FKineMono', 'FKineLinked']:
+    for model in ['FKineMono', 'FKineLinked']:
+        for n_dims in [2, 3]:
+            for n_joints in [2, 3, 4, 5, 6, 7]:
                 hyper_params_file = tune_dir/('reacher%dd%dj_%s_hyperparams.pickle'%(n_dims, n_joints, model))
 
                 model_kwargs['model'] = model 
@@ -191,7 +192,17 @@ if __name__ == '__main__':
                 algo = ConcurrencyLimiter(searcher, max_concurrent=4)
                 scheduler = AsyncHyperBandScheduler(grace_period=5, max_t=100, metric="loss", mode="min")
                 trainable = tune.with_resources(
-                        partial(learn_wrap, max_epochs=40, out_dir=out_dir, model_kwargs=model_kwargs, learn_kwargs=learn_kwargs, target_loss=0.01, device=device),
+                        partial(
+                            learn_wrap,
+                            max_epochs=40,
+                            out_dir=out_dir,
+                            model_kwargs=model_kwargs,
+                            learn_kwargs=learn_kwargs,
+                            target_loss=0.005,
+                            n_runs=10,
+                            n_val_samples=100,
+                            device=device
+                            ),
                         resources 
                         )
                 tuner = tune.Tuner(
@@ -211,4 +222,3 @@ if __name__ == '__main__':
                 results_df = result.get_dataframe()
                 print('results: ', results_df)
                 results_df.to_pickle(hyper_params_file)
-            quit()

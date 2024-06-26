@@ -19,6 +19,9 @@ def get_hyper_params(hp_file):
     best_configs = configs.get(mask)
     best_metrics = metrics.get(mask)
     
+    print('Best Configurations:\n', best_configs)
+    print('Best Metrics:\n', best_metrics)
+
     idx = best_metrics['loss'].idxmin()
     _best_config = best_configs.loc[idx].to_dict()
     
@@ -28,7 +31,7 @@ def get_hyper_params(hp_file):
     learn_config = dict((k, int(best_config[k]) if k in ['batch_size'] else best_config[k]) for k in ['batch_size'])
     model_config = dict((k, int(best_config[k]) if k in ['n_hidden', 'size_hidden'] else best_config[k]) for k in ['lr', 'n_hidden', 'size_hidden'])
 
-    return learn_config, model_config 
+    return learn_config, model_config, best_metrics['num_params'].loc[idx] 
 
 #------------------- Incremental Dataset --------------
 class IncrDataset(Dataset):

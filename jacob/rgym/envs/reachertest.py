@@ -48,6 +48,7 @@ class ReacherTest(gym.Wrapper):
         self.x_prev = self.current_obs['x']
 
         return self.current_obs, self.current_reward, self.current_info['goal_achieved'], truncated, self.current_info 
+    
     def reset(self, **kwargs):
         _, info = super().reset(**kwargs)
         
@@ -98,6 +99,30 @@ class ReacherTest(gym.Wrapper):
 
         return r_dist + r_vel, info 
     
+    def sample_states(self, n_samples, strategy='walk'):
+        q, qdot, x, xdot = [], [], [], []
+        
+        for sample in range(n_samples):
+            if strategy == 'walk': 
+                action = self.action_space.sample() 
+                obs, _, _, _, _ = env.step(action)
+            elif strategy == 'random': 
+                _q = self.unwrapped.sample_joints() 
+                self.unwrapped.set_joint_state(_q) 
+                obs = self.compute_observation() 
+            
+            q.append(obs['q'].copy())
+            qdot.append(obs['qdot'].copy())
+            x.append(obs['x'].copy())
+            xdot.append(obs['xdot'].copy())
+        
+        q = np.array(q)
+        qdot = np.array(qdot)
+        x = np.array(x)
+        xdot = np.array(xdot)
+        return q, qdot, x, xdot
+
+
 from gymnasium.envs.registration import register
 
 def reachertest(**args):

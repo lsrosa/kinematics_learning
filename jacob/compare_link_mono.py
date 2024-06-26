@@ -305,14 +305,14 @@ if __name__ == '__main__':
             if (not hp_file_link) or (not hp_file_mono):
                 if not hp_file_link: print('could not find fkineLinked hyper-parameters for %dd%dj, skipping'%(n_dims, n_joints))
                 if not hp_file_mono: print('could not find fkineMono hyper-parameters for %dd%dj, skipping'%(n_dims, n_joints))
-                continue
+                #continue
 
             model_kwargs_link['model'] = 'FKineLinked'
             model_kwargs_link['n_dims'] = n_dims 
             model_kwargs_link['n_joints'] = n_joints
 
-            learn_params, model_params = get_hyper_params(hp_file_link[0])
-            print('link: ', learn_params, model_params)
+            learn_params, model_params, n_params = get_hyper_params(hp_file_link[0])
+            print('link: ', learn_params, model_params, n_params)
             model_kwargs_link.update(model_params)
             learn_kwargs_link.update(learn_params)
             #learn('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_link, learn_kwargs_link, device=device)
@@ -321,16 +321,14 @@ if __name__ == '__main__':
             model_kwargs_mono['n_dims'] = n_dims 
             model_kwargs_mono['n_joints'] = n_joints
             
-            learn_params, model_params = get_hyper_params(hp_file_mono[0])
-            print('mono: ', learn_params, model_params)
-            model_kwargs_mono.update(model_params)
-            learn_kwargs_mono.update(learn_params)
+            #learn_params, model_params, n_params = get_hyper_params(hp_file_mono[0])
+            #print('link: ', learn_params, model_params, n_params)
+            #model_kwargs_mono.update(model_params)
+            #learn_kwargs_mono.update(learn_params)
             #learn('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_mono, learn_kwargs_mono, device=device)
 
             #test('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_link, model_kwargs_mono, device=device)
-            break
-        break
-    plot_loss_comparison('compare/results', 'compare/plots')
+    #plot_loss_comparison('compare/results', 'compare/plots')
     quit()
 
 
