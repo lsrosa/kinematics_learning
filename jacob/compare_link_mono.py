@@ -290,8 +290,11 @@ if __name__ == '__main__':
         for _nj, n_joints in enumerate([2, 3, 4, 5, 6, 7]):
             hp_file_link = sorted(list(hyperparams_dir.glob('reacher%dd%dj_FKineLinked_hyperparams.pickle'%(n_dims, n_joints))))
             hp_file_mono = sorted(list(hyperparams_dir.glob('reacher%dd%dj_FKineMono_hyperparams.pickle'%(n_dims, n_joints))))
-            if (not hp_file_link) or (not hp_file_mono):
+            if (not hp_file_link):
                 if not hp_file_link: print('could not find fkineLinked hyper-parameters for %dd%dj, skipping'%(n_dims, n_joints))
+                #continue
+                
+            if (not hp_file_mono):
                 if not hp_file_mono: print('could not find fkineMono hyper-parameters for %dd%dj, skipping'%(n_dims, n_joints))
                 continue
 
@@ -299,26 +302,26 @@ if __name__ == '__main__':
             model_kwargs_link['n_dims'] = n_dims 
             model_kwargs_link['n_joints'] = n_joints
 
-            learn_params, model_params, n_params = get_hyper_params(hp_file_link[0])
-            print('link: ', learn_params, model_params, n_params)
-            model_kwargs_link.update(model_params)
-            learn_kwargs_link.update(learn_params)
-            learn('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_link, learn_kwargs_link, device=device)
+            #learn_params, model_params, n_params = get_hyper_params(hp_file_link[0])
+            #print('link: ', learn_params, model_params, n_params)
+            #model_kwargs_link.update(model_params)
+            #learn_kwargs_link.update(learn_params)
+            #learn('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_link, learn_kwargs_link, device=device)
     
             model_kwargs_mono['model'] = 'FKineMono'
             model_kwargs_mono['n_dims'] = n_dims 
             model_kwargs_mono['n_joints'] = n_joints
             
             learn_params, model_params, n_params = get_hyper_params(hp_file_mono[0])
-            print('link: ', learn_params, model_params, n_params)
+            print('mono: ', learn_params, model_params, n_params)
             model_kwargs_mono.update(model_params)
             learn_kwargs_mono.update(learn_params)
-            learn('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_mono, learn_kwargs_mono, device=device)
+            #learn('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_mono, learn_kwargs_mono, device=device)
 
-            compare('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_link, model_kwargs_mono, n_samples=100, sampling_strat='walk', device=device)
+            #compare('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_link, model_kwargs_mono, n_samples=100, sampling_strat='walk', device=device)
             #break
         #break
-    plot_loss_comparison('compare/results', 'compare/plots')
+    #plot_loss_comparison('compare/results', 'compare/plots')
     #quit()
 
 
