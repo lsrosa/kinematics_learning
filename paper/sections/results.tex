@@ -94,7 +94,7 @@ The training budget is set as $2000$ epochs with $\nSamples=100$ and $\nIteratio
 Figure \ref{fig: loss fkines} presents the losses when learning $\nnMono$ and $\nnLink$, which shows that the proposed architecture outperforms the monolithic approach found used in the literature.
 
 \begin{figure*}
-	\includegraphics[width=\textwidth, height=2in]{example-image-a}
+	\includegraphics[width=\textwidth]{fkine_link_x_mono}
 	\caption{Loss comparison between $\nnMono$ and $\nnLink$. The solid line and shaded area represent the mean loss and the area between minimum and maximum losses over $30$ trials.}
 	\label{fig: loss fkines}
 \end{figure*}
@@ -102,7 +102,7 @@ Figure \ref{fig: loss fkines} presents the losses when learning $\nnMono$ and $\
 For qualitative comparison, Figure \ref{fig: joints position} presents the joints position estimation obtained by $\nnMono$ and $\nnLink$ for $\nDims=3$ and $\nJoints=7$ only (the 2D and other joint numbers cases are omitted for briefness), in which the higher accuracy can be seem.
 
 \begin{figure*}
-	\includegraphics[width=\textwidth, height=2in]{example-image-a}
+	\includegraphics[width=\textwidth, height=2in]{fkine_predictions_x}
 	\caption{Joints position estimation comparison for $\nnMono$ and $\nnLink$.}
 	\label{fig: joints position}
 \end{figure*}
@@ -115,11 +115,11 @@ This characteristic is explained by the fact that for $\nnLink$, errors are prop
 %
 Nevertheless, we emphasize that $\nnLink$ achieves higher accuracy for all joints, and that
 
-\begin{figure}
-	\includegraphics[width=\linewidth]{example-image-a}
+\begin{figure*}
+	\includegraphics[width=\linewidth]{fkine_errors_hist_x}
 	\caption{Accuracy comparison for $\nnMono$ and $\nnLink$.}
 	\label{fig: errors}
-\end{figure}
+\end{figure*}
 
 Next, to demonstrate the accuracy impacts, we estimate the end-effector velocity $\dot{\pos}_j = \left[\jacob\dot{\rotAngle{}}\right]_j$, where $\jacob$ is the unknown Jacobian matrix of the robot, as $\prediction{\dot{\pos}}_j = \left[\frac{\partial\nn}{\partial\rotAngle{}}\dot{\rotAngle{}}\right]_j$.
 %
@@ -130,7 +130,7 @@ Figure \ref{fig: ee vel} shows the velocity estimation and ground-truth obtained
 The better accuracy of the proposed architecture indicates its adequacy for being used in higher level applications, while the monolithic architecture poor accuracy might impact higher level applications badly.
 
 \begin{figure}
-	\includegraphics[width=\linewidth]{example-image-a}
+	\includegraphics[width=\linewidth]{fkine_predictions_xdot}
 	\caption{End-effector velocity estimation comparison for $\nnMono$ and $\nnLink$.}
 	\label{fig: ee vel}
 \end{figure}

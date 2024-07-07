@@ -83,8 +83,9 @@ def compare(models_dir, results_dir, plots_dir, model_kwargs_link, model_kwargs_
         #TODO: maybe get for other joints
         y_dot_pred_link = torch.zeros(n, n_dims)
         y_dot_pred_mono = torch.zeros(n, n_dims)
-        
+       
         for i in range(n):
+            print('sample: ', i)
             jacobian_link,_ = torch.autograd.functional.jacobian(fkine_link_net, q_link[i])
             jacobian_mono = torch.autograd.functional.jacobian(fkine_mono_net, q_mono[i])
             _j_link = jacobian_link[:,:,1].reshape(n_dims, n_joints)
@@ -135,7 +136,7 @@ def compare(models_dir, results_dir, plots_dir, model_kwargs_link, model_kwargs_
                 _y_labels += [r'$x_{%d,%d}$'%(j,d)]
         _suffix = '%dd%dj'%(n_dims, n_joints) 
         
-        fig, axs = plt.subplots(n_dims, n_joints, sharex='all', figsize=(4*n_dims, 4*n_joints))
+        fig, axs = plt.subplots(n_dims, n_joints, sharex='all', figsize=(4*n_joints+0.5, 3*n_dims))
         for d in range(n_dims):
             for j in range(n_joints):
                 idx = j+d*n_joints
@@ -160,31 +161,49 @@ def compare(models_dir, results_dir, plots_dir, model_kwargs_link, model_kwargs_
             ax.set_ylabel(_y_labels[d])
         plt.savefig(plots_dir+'/fkine_predictions_xdot_%s%s.pdf'%(_suffix, _run), dpi=1200, bbox_inches='tight')
         plt.close() 
-
+        
+        # Plot errors histogram
         error_joints_link = (y_pred_link.cpu() - y).norm(dim=1).transpose(0,1)
         error_joints_mono = (y_pred_mono.cpu() - y).norm(dim=1).transpose(0,1)
         _min_error = min(error_joints_link.min(), error_joints_mono.min())
         _max_error = max(error_joints_link.max(), error_joints_mono.max())
-        bins = np.linspace(_min_error*0.9, _max_error*1.1, 25)
-        _labels = [r'$\Phi^l$', r'$\Phi^m$']
+        bins = np.linspace(_min_error*0.9, _max_error*1.1, 50)
         fig, axs = plt.subplots(1, n_joints, sharex='all', sharey='all', figsize=(4*n_joints, 4*1))
         for j in range(n_joints):
             ax = axs[j]
             df = pandas.DataFrame({r'$\Phi^l$': error_joints_link[j], r'$\Phi^m$': error_joints_mono[j]})
-            seaborn.histplot(data=df, bins=bins, palette=colors[0:2], common_norm=False, stat='percent', shrink=0.8, ax=ax, legend=(j==0), common_bins=False, kde=True, kde_kws={'clip':[_min_error*0.9, _max_error*1.1], 'cut':10})
+            seaborn.histplot(data=df, bins=bins, palette=colors[0:2], common_norm=False, stat='percent', shrink=0.8, ax=ax, legend=(j==0), common_bins=False, kde=False, kde_kws={'clip':[_min_error*0.9, _max_error*1.1], 'cut':10})
             ax.title.set_text('Joint %d'%(j+1))
             ax.set_xlabel('Error')
             if j == 0:
                 ax.set_ylabel(r'\# Samples (\%)')
         plt.savefig(plots_dir+'/fkine_errors_hist_x_%s%s.pdf'%(_suffix, _run), dpi=1200, bbox_inches='tight')
         plt.close() 
+        
+        # plot errors correlations
+        fig, axs = plt.subplots(1, n_joints-1, sharex='all', sharey='all', figsize=(4*(n_joints-1), 4))
+        for j in range(n_joints-1):
+            ax = axs[j]
+            _x_corr_label = r'$||x_{%d}, \tilde{x_{%d}}||$'%(j, j)
+            _y_corr_label = r'$||x_{%d}, \tilde{x_{%d}}||$'%(j+1, j+1)
+            _phi_link_label = [r'$\Phi^l$' for i in range(n_samples)]
+            _phi_mono_label = [r'$\Phi^m$' for i in range(n_samples)]
 
+            df = pandas.DataFrame({
+                'Arch': _phi_link_label+_phi_mono_label,
+                _x_corr_label : np.hstack((error_joints_link[j], error_joints_mono[j])),
+                _y_corr_label : np.hstack((error_joints_link[j+1], error_joints_mono[j+1]))
+                })
+            seaborn.scatterplot(data=df, ax=ax, x=_x_corr_label, y=_y_corr_label, hue='Arch', palette=colors[0:2], alpha=0.5)
+        plt.savefig(plots_dir+'/fkine_errors_correlations_%s%s.pdf'%(_suffix, _run), dpi=1200, bbox_inches='tight')
+        plt.close() 
+
+    '''
     error_y_link = np.array(error_y_link)
     error_y_mono = np.array(error_y_mono)
     error_y_dot_link = np.array(error_y_dot_link)
     error_y_dot_mono = np.array(error_y_dot_mono)
 
-    '''
     _titles = []
     for d in range(n_dims):
         for j in range(n_joints):
@@ -232,11 +251,11 @@ def plot_loss_comparison(results_dir, plots_dir):
     plots_dir = path(plots_dir)
     plt.rcParams['text.usetex'] = True
     
-    fig, axs = plt.subplots(2, 7, sharex='all', figsize=(4*7, 4*1))
+    fig, axs = plt.subplots(1, 6, sharex='all', figsize=(4*6, 3*1))
     palette = itertools.cycle(seaborn.color_palette())
     colors = [next(palette) for i in range(2)]
     
-    for d, n_dims in enumerate([2, 3]):
+    for d, n_dims in enumerate([3]):#, 2]):
         for j, n_joints in enumerate([2, 3, 4, 5, 6, 7]):
             loss_link_file = sorted(list(results_dir.glob("fkine_FKineLinked_%dd%dj_*.pickle"%(n_dims, n_joints))))
             loss_mono_file = sorted(list(results_dir.glob("fkine_FKineMono_%dd%dj_*.pickle"%(n_dims, n_joints))))
@@ -252,7 +271,7 @@ def plot_loss_comparison(results_dir, plots_dir):
             n_runs = losses_link.shape[0]
             n_epochs = losses_link.shape[1]
             epochs = np.linspace(1, n_epochs, n_epochs)
-            ax = axs[d][j]
+            ax = axs[j]
 
             mean_link = np.mean(losses_link, axis=0)
             mean_mono = np.mean(losses_mono, axis=0)
@@ -279,15 +298,17 @@ if __name__ == '__main__':
     learn_kwargs_link = dict()
     learn_kwargs_link['seed'] = 1
     learn_kwargs_link['n_rollouts'] = 100
-    learn_kwargs_link['learn_steps'] = 2000 
+    learn_kwargs_link['learn_steps'] = 3000 
     learn_kwargs_link['n_envs'] = 32 
     learn_kwargs_link['n_iter'] = 25 
     learn_kwargs_link['append'] = False 
     learn_kwargs_link['refine'] = True 
     learn_kwargs_mono = learn_kwargs_link.copy()
     
-    for n_dims in [2, 3]:
-        for _nj, n_joints in enumerate([2, 3, 4, 5, 6, 7]):
+    n_runs = 2
+
+    for n_dims in [3]:#, 2]:
+        for _nj, n_joints in enumerate([7]):#, 6, 5, 4, 3, 2]):
             hp_file_link = sorted(list(hyperparams_dir.glob('reacher%dd%dj_FKineLinked_hyperparams.pickle'%(n_dims, n_joints))))
             hp_file_mono = sorted(list(hyperparams_dir.glob('reacher%dd%dj_FKineMono_hyperparams.pickle'%(n_dims, n_joints))))
             if (not hp_file_link):
@@ -301,27 +322,27 @@ if __name__ == '__main__':
             model_kwargs_link['model'] = 'FKineLinked'
             model_kwargs_link['n_dims'] = n_dims 
             model_kwargs_link['n_joints'] = n_joints
-
-            #learn_params, model_params, n_params = get_hyper_params(hp_file_link[0])
-            #print('link: ', learn_params, model_params, n_params)
-            #model_kwargs_link.update(model_params)
-            #learn_kwargs_link.update(learn_params)
-            #learn('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_link, learn_kwargs_link, device=device)
+            learn_params, model_params, n_params = get_hyper_params(hp_file_link[0])
+            print('link: ', learn_params, model_params, n_params)
+            model_kwargs_link.update(model_params)
+            learn_kwargs_link.update(learn_params)
+            for run in range(n_runs):
+                learn('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_link, learn_kwargs_link, device=device)
     
             model_kwargs_mono['model'] = 'FKineMono'
             model_kwargs_mono['n_dims'] = n_dims 
             model_kwargs_mono['n_joints'] = n_joints
-            
             learn_params, model_params, n_params = get_hyper_params(hp_file_mono[0])
             print('mono: ', learn_params, model_params, n_params)
             model_kwargs_mono.update(model_params)
             learn_kwargs_mono.update(learn_params)
-            #learn('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_mono, learn_kwargs_mono, device=device)
+            for run in range(n_runs):
+                learn('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_mono, learn_kwargs_mono, device=device)
 
-            #compare('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_link, model_kwargs_mono, n_samples=100, sampling_strat='walk', device=device)
+            #compare('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_link, model_kwargs_mono, n_samples=200, sampling_strat='walk', device=device)
             #break
         #break
-    #plot_loss_comparison('compare/results', 'compare/plots')
+    plot_loss_comparison('compare/results', 'compare/plots')
     #quit()
 
 
