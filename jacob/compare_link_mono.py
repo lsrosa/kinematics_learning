@@ -251,7 +251,7 @@ def plot_loss_comparison(results_dir, plots_dir):
     plots_dir = path(plots_dir)
     plt.rcParams['text.usetex'] = True
     
-    fig, axs = plt.subplots(1, 6, sharex='all', figsize=(4*6, 3*1))
+    fig, axs = plt.subplots(1, 6, sharex='all', sharey='all', figsize=(4*6, 3*1))
     palette = itertools.cycle(seaborn.color_palette())
     colors = [next(palette) for i in range(2)]
     
@@ -305,10 +305,11 @@ if __name__ == '__main__':
     learn_kwargs_link['refine'] = True 
     learn_kwargs_mono = learn_kwargs_link.copy()
     
-    n_runs = 2
+    n_runs = 5
 
     for n_dims in [3]:#, 2]:
-        for _nj, n_joints in enumerate([7]):#, 6, 5, 4, 3, 2]):
+        for _nj, n_joints in enumerate([6, 5]):#, 6, 5, 4, 3, 2]):
+            print('dims: ', n_dims, '   joints: ', n_joints)
             hp_file_link = sorted(list(hyperparams_dir.glob('reacher%dd%dj_FKineLinked_hyperparams.pickle'%(n_dims, n_joints))))
             hp_file_mono = sorted(list(hyperparams_dir.glob('reacher%dd%dj_FKineMono_hyperparams.pickle'%(n_dims, n_joints))))
             if (not hp_file_link):
