@@ -70,8 +70,8 @@ def compare(models_dir, results_dir, plots_dir, model_kwargs_link, model_kwargs_
         
         n = len(y)
         y = np.array(y)
-        q_link = torch.Tensor(q).to(device)
-        q_mono = torch.Tensor(q).to(device)
+        q_link = torch.Tensor(q).to(device).requires_grad_(True)
+        q_mono = torch.Tensor(q).to(device).requires_grad_(True)
         q_dot = torch.Tensor(q_dot).to(device)
    
         # check the model.eval() functon
@@ -83,7 +83,6 @@ def compare(models_dir, results_dir, plots_dir, model_kwargs_link, model_kwargs_
         #TODO: maybe get for other joints
         y_dot_pred_link = torch.zeros(n, n_dims)
         y_dot_pred_mono = torch.zeros(n, n_dims)
-       
         for i in range(n):
             print('sample: ', i)
             jacobian_link,_ = torch.autograd.functional.jacobian(fkine_link_net, q_link[i])
@@ -181,69 +180,33 @@ def compare(models_dir, results_dir, plots_dir, model_kwargs_link, model_kwargs_
         plt.close() 
         
         # plot errors correlations
-        fig, axs = plt.subplots(1, n_joints-1, sharex='all', sharey='all', figsize=(4*(n_joints-1), 4))
-        for j in range(n_joints-1):
-            ax = axs[j]
-            _x_corr_label = r'$||x_{%d}, \tilde{x_{%d}}||$'%(j, j)
-            _y_corr_label = r'$||x_{%d}, \tilde{x_{%d}}||$'%(j+1, j+1)
-            _phi_link_label = [r'$\Phi^l$' for i in range(n_samples)]
-            _phi_mono_label = [r'$\Phi^m$' for i in range(n_samples)]
-
-            df = pandas.DataFrame({
-                'Arch': _phi_link_label+_phi_mono_label,
-                _x_corr_label : np.hstack((error_joints_link[j], error_joints_mono[j])),
-                _y_corr_label : np.hstack((error_joints_link[j+1], error_joints_mono[j+1]))
-                })
-            seaborn.scatterplot(data=df, ax=ax, x=_x_corr_label, y=_y_corr_label, hue='Arch', palette=colors[0:2], alpha=0.5)
+        fig, axs = plt.subplots(1, 1, sharex='all', sharey='all', figsize=(4, 4))
+        _x_corr_label = r'$<||x_{%d} - \tilde{x}_{%d}||>$'%(0, 0)
+        _phi_link_label = [r'$\Phi^l$' for i in range(n_samples)]
+        _phi_mono_label = [r'$\Phi^m$' for i in range(n_samples)]
+        
+        #normalize
+        _error_joints_link_norm = error_joints_link[0] - error_joints_link[0].min()
+        _error_joints_link_norm /= _error_joints_link_norm.max()
+        _error_joints_mono_norm = error_joints_mono[0] - error_joints_mono[0].min()
+        _error_joints_mono_norm /= _error_joints_mono_norm.max()
+        _x_corr = np.hstack((_error_joints_link_norm, _error_joints_mono_norm))
+        df = pandas.DataFrame({
+            'Arch': _phi_link_label+_phi_mono_label,
+            _x_corr_label : _x_corr,
+            })
+        ax = axs
+        _y_corr_label = r'$<||x_{%d} - \tilde{x}_{%d}||>$'%(j+1, j+1)
+        _error_joints_link_norm = error_joints_link[n_joints-1] - error_joints_link[n_joints-1].min()
+        _error_joints_link_norm /= _error_joints_link_norm.max()
+        _error_joints_mono_norm = error_joints_mono[n_joints-1] - error_joints_mono[n_joints-1].min()
+        _error_joints_mono_norm /= _error_joints_mono_norm.max()
+        _y_corr = np.hstack((_error_joints_link_norm, _error_joints_mono_norm))
+        df[_y_corr_label] = _y_corr 
+        seaborn.scatterplot(data=df, ax=ax, x=_x_corr_label, y=_y_corr_label, hue='Arch', palette=colors[0:2], alpha=0.5)
         plt.savefig(plots_dir+'/fkine_errors_correlations_%s%s.pdf'%(_suffix, _run), dpi=1200, bbox_inches='tight')
         plt.close() 
 
-    '''
-    error_y_link = np.array(error_y_link)
-    error_y_mono = np.array(error_y_mono)
-    error_y_dot_link = np.array(error_y_dot_link)
-    error_y_dot_mono = np.array(error_y_dot_mono)
-
-    _titles = []
-    for d in range(n_dims):
-        for j in range(n_joints):
-            _titles += ['x%d%d'%(j,d)]
-    steps = np.linspace(1, n_samples, n_samples)
-    plt.figure()
-    for d in range(n_dims):       
-        for j in range(n_joints):
-            idx = j+d*n_joints
-            plt.subplot(n_dims, n_joints, idx+1)
-            plt.gca().set_prop_cycle(None)
-            plt.plot(steps, error_y_link[:, :, idx].mean(axis=0), label=r'$\Phi^l$')
-            plt.fill_between(steps, error_y_link[:, :, idx].min(axis=0), error_y_link[:, :, idx].max(axis=0), alpha=0.3)
-            plt.plot(steps, error_y_mono[:, :, idx].mean(axis=0), label=r'$\Phi^m$')
-            plt.fill_between(steps, error_y_mono[:, :, idx].min(axis=0), error_y_mono[:, :, idx].max(axis=0), alpha=0.3)
-            plt.title(_titles[idx])
-            plt.xlabel('step')
-            plt.ylabel('absolute x error')
-    plt.legend()
-    plt.savefig(plots_dir+'/fkine_errors_x%s.png'%(_suffix), dpi=1200)
-    plt.close()
-    '''
-
-    ''' 
-    plt.figure()
-    for d in range(n_dims):       
-        idx = d#j+d*n_joints
-        plt.subplot(n_dims, 1, idx+1)
-        plt.gca().set_prop_cycle(None)
-        plt.plot(steps, error_y_dot_link[:, :, idx].mean(axis=0), label=r'$\Phi^l$')
-        plt.fill_between(steps, error_y_dot_link[:, :, idx].min(axis=0), error_y_dot_link[:, :, idx].max(axis=0), alpha=0.3)
-        plt.plot(steps, error_y_dot_mono[:, :, idx].mean(axis=0), label=r'$\Phi^m$')
-        plt.fill_between(steps, error_y_dot_mono[:, :, idx].min(axis=0), error_y_dot_mono[:, :, idx].max(axis=0), alpha=0.3)
-        plt.title(_titles[idx])
-        plt.xlabel('step')             
-        plt.ylabel('absolute x dot error')
-    plt.legend()
-    plt.savefig(plots_dir+'/fkine_errors_x_dot%s.png'%(_suffix), dpi=1200)
-    plt.close()
-    '''
     return
 
 def plot_loss_comparison(results_dir, plots_dir):
@@ -308,7 +271,7 @@ if __name__ == '__main__':
     n_runs = 5
 
     for n_dims in [3]:#, 2]:
-        for _nj, n_joints in enumerate([6, 5]):#, 6, 5, 4, 3, 2]):
+        for _nj, n_joints in enumerate([7]):#7, 6, 5, 4, 3, 2]):
             print('dims: ', n_dims, '   joints: ', n_joints)
             hp_file_link = sorted(list(hyperparams_dir.glob('reacher%dd%dj_FKineLinked_hyperparams.pickle'%(n_dims, n_joints))))
             hp_file_mono = sorted(list(hyperparams_dir.glob('reacher%dd%dj_FKineMono_hyperparams.pickle'%(n_dims, n_joints))))
@@ -340,7 +303,7 @@ if __name__ == '__main__':
             for run in range(n_runs):
                 learn('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_mono, learn_kwargs_mono, device=device)
 
-            #compare('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_link, model_kwargs_mono, n_samples=200, sampling_strat='walk', device=device)
+            compare('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_link, model_kwargs_mono, n_samples=200, sampling_strat='walk', device=device)
             #break
         #break
     plot_loss_comparison('compare/results', 'compare/plots')

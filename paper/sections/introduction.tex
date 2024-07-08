@@ -1,1 +1,20 @@
 \section{Introduction}\label{sec: introduction}
+
+Forward kinematics is arguably one of the most basic computations in robotics, which provides means of computing the position of joints, or other links, in a chosen reference frame (often the world frame).
+%
+For industrial and commercial robots, the forward kinematics is computed based on a detailed and accurate system description provided by the manufacturer.
+
+Nevertheless, for low-cost or in-house-built robots, achieving a satisfactory forward kinematics is not a trivial task, and often learning-based methods are adopted. \cn
+
+In order to learn forward kinematics, common approaches found in the literature often rely on using a monolithic \gls{nn} to approximate the mapping between joints and position, without giving much attention to the \gls{nn} architecture and its impacts in learning efficiency and final model precision.
+%
+Furthermore, little attention has been given for the learning scalability as the number of joints increase.
+
+In this paper we propose a novel \gls{nn} architecture based on \gls{dh} transformations for learning forward kinematics.
+%
+The proposed architecture consists of one \gls{nn} for estimating the transformation of each joint with respect to the previous one, and leverages the chaining properties of \gls{dl} transformations for computing the forward kinematics with respect to a common reference frame.
+ 
+In order to test the proposed architecture, we simulate robotic manipulators with $2$, up to $7$ joints, showing increasing gains in sampling efficiency and accuracy as the number of joints increase.
+%
+We further demonstrate the impacts of using the proposed architecture on higher level computations based on the forward kinematics, namely velocity estimation through Jacobian computation and on a \gls{rl} policy learning.
+ 
