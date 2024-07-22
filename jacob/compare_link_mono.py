@@ -264,14 +264,14 @@ if __name__ == '__main__':
     learn_kwargs_link['learn_steps'] = 3000 
     learn_kwargs_link['n_envs'] = 32 
     learn_kwargs_link['n_iter'] = 25 
-    learn_kwargs_link['append'] = True 
-    learn_kwargs_link['refine'] = False 
+    learn_kwargs_link['append'] = False 
+    learn_kwargs_link['refine'] = True 
     learn_kwargs_mono = learn_kwargs_link.copy()
     
     n_runs = 5
 
     for n_dims in [3]:#, 2]:
-        for _nj, n_joints in enumerate([3]):#7, 6, 5, 4, 3, 2]):
+        for _nj, n_joints in enumerate([2]):#7, 6, 5, 4, 3, 2]):
             print('dims: ', n_dims, '   joints: ', n_joints)
             hp_file_link = sorted(list(hyperparams_dir.glob('reacher%dd%dj_FKineLinked_hyperparams.pickle'%(n_dims, n_joints))))
             hp_file_mono = sorted(list(hyperparams_dir.glob('reacher%dd%dj_FKineMono_hyperparams.pickle'%(n_dims, n_joints))))
