@@ -68,7 +68,6 @@ def tune_and_report(models_folder, fkine_models_folder, n_dims, n_joints):
     for model_file in model_files:
         os.system("cp %s %s"%(model_file.as_posix(), default_model_file))
         model_name = model_file.parts[-1].replace('.xml', '')
-        
         # search for fkine model and kwargs for model_name
         fkine_model_files = sorted(list(path(fkine_models_folder).glob('*%s*.pt'%model_name.replace('reacher',''))))
         fkine_kwargs_files = sorted(list(path(fkine_models_folder).glob('*%s*.json'%model_name.replace('reacher',''))))
@@ -87,7 +86,7 @@ def tune_and_report(models_folder, fkine_models_folder, n_dims, n_joints):
 if __name__ == "__main__":
     models_foder = "rgym/envs/assets"
     fkine_models_folder = "results/fkine_models"
-    for n_dims in [2]:#[2, 3]:
-        for n_joints in [2]:#[2, 3, 4, 5, 6, 7]:    
+    for n_dims in [3]:#[2, 3]:
+        for n_joints in [7]:#[2, 3, 4, 5, 6, 7]:    
             tune_and_report(models_foder, fkine_models_folder, n_dims, n_joints)
     
