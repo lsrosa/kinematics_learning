@@ -1,33 +1,59 @@
 \section{Related Works}\label{sec: related works}
 
-\cite{nguyen1990neural} probably the first proposal of learning forward kinematics with \gls{nn}. Uses a monolithic network and a planar 2-link robotic arm.
+Learning forward kinematics using a monolithic \gls{nn} as function approximator has been explored since early works, E.g., in \cite{nguyen1990neural} the approach is used for a simple planar 2-link robotic arm.
+%
+More recent efforts show that this approach can scale for robots with 6-\glspl{dof} \cite{theofanidis2018kinematic}, and also demonstrate the model's applicability to real robots by transferring a model learned from simulation \cite{kesaba2022transfer,kesaba2022forward}. 
+%
+Towards learning a forward kinematics model for real robots, \cite{dalla2020autonomous} proposes a vision based method to learn the linkage between joints, and uses an ulterior \gls{gpr} for learning a monolithic forward kinematics model for a 6-\glspl{dof} robot.
 
-\cite{gribovskaya2011learning} proposes to learn forward kinematics as a monolithic \gls{gmm} model. They test on a real robot with \rev{3?}-\gls{dof}.
+%forward and inverse kine
+Recent works propose exploring the coupling between forward and inverse kinematics for simultaneously learning both functions.
+%
+For example, a monolithic \gls{nn} is used for learning the forward and inverse kinematics of 2-\glspl{dof} \cite{sharkawy2022forward} and 3-\glspl{dof} \cite{sharkawy2023forward} robotic arms.
+%
+In \cite{damas2012online} the forward and inverse kinematics together for 6-\glspl{dof} serial and parallel robots using a monolithic \gls{nn} which is trained online using a \gls{lwpr}. 
+%
+Further than the forward kinematics, \cite{ren2020learning} proposes learning forward dynamics and inverse kinematics model of serial robot manipulators using \glspl{gan}.
+%
 
-\cite{damas2012online} proposed to learn the forward and inverse kinematics together for parallel robots. The approach uses a monolithic model, which is learned online using a \gls{lwpr}.
+% Other approximators
+Instead of using \glspl{nn} as approximator, \cite{loutfi2020learning} evaluates different function methods for forward kinematic approximation learning for continuum robots, highlighting the potential of \glspl{nn}, \glspl{svm}, \glspl{rbf}, and fuzzy systems according to the dataset size.
+%
+Furthermore, \cite{morell2013solving} proposes using \gls{svr} for learning the forward kinematics of both serial and parallel manipulators.
 
-\cite{morell2013solving} proposes to solve the forward kinematics using \gls{svr}.
 
-\cite{gu2017deep} proposes to learn a policy with deep-Q learning. They use simulation and robot farms. (fells like I`ve the images of this paper in another paper. double check)
+%physics informed
+Recent research has been leveraging other types of information for improving the forward kinematics leaning efficiency.
+%
+As example, \cite{kanneganti2021developing} proposes framing the forward kinematics learning of a 2-\glspl{dof} robot as an explainable \gls{nn}, using prior knowledge of the systems dynamics to improve the learning efficiency and trustworthiness;
+%
+and in \cite{cursi2022augmented} differential information is used to improve the training of a monolithic forward kinematics module for a 7-\glspl{dof} robotic arm.
 
-\cite{kubus2018learning} presents as analysis on sample efficiency for learning the forward kinematics of linked robots. Using tailored parameterized models is efficient, other methods are not sample efficient. They focus on Fourier-Domain representations.
+% Other representations
+Recent attention has been given to the representation and forward kinematics learning procedure.
+%
+For example, \cite{grassmann2019merits} studies the joint-position representation influence on forward kinematics learning  with a monolithic \gls{nn} for a 6-\glspl{dof} robotic arm, showing that quaternions can achieve higher accuracy when compared to Euler angles for estimating orientation.
+%
+And \cite{bouzid2024exploring} studies the training procedure effects by evaluating different data sampling techniques and optimization options for learning a monolithic forward kinematics model for a 2-\glspl{dof} robot.
 
-\cite{theofanidis2018kinematic} solves the forward kinematics of a 6-\gls{dof} serial manipulator using a monolithic \gls{nn}.
+We would like to highlight that all approaches above mentioned use a monolithic \gls{nn} for learning a forward kinematics model.
+%
+Instead, in this paper we propose a joint-by-joint \gls{nn} model which leverages \gls{dh} transformations for composing a global forward kinematics, and as such, the improvements achieved are expected to reflect on those approaches.
 
-\cite{grassmann2019merits} study the influence of joint-position representations on learning forward kinematics with a monolithic \gls{nn} for a 6-\gls{dof} robotic arm and a cylindrical robot. They test \texttt{Euler angles}, \texttt{vectorial}, \texttt{quaternions}, and \texttt{angle-axis} representation. Results favor quaternion representation.
+%\cite{gu2017deep} proposes to learn a policy with deep-Q learning. They use simulation and robot farms. (fells like I`ve the images of this paper in another paper. double check)
 
-\cite{ren2020learning} proposes learning the inverse kinematics and the dynamics model of serial robot manipulators using \glspl{gan}.
+%Motivation
+Nevertheless, learning-based methods for forward-kinematics are still not viable regarding sample efficiency and real robots require fine-tailored parametric models for obtaining a forward kinematics approximation \cite{kubus2018learning}.
+%
+However, it is hard to define a parametric model without making any assumption on the joints types and rotation axis.
+%
+In comparison, the approach proposed in this paper makes no such assumptions, and can be easily applied to any robot.
 
-\cite{loutfi2020learning} evaluates different function approximators for learning monolithic forward kinematic models. \glspl{nn} perform the best.
+Furthermore, our approach share the philosophy of \cite{gonccalves2022recursive}, where the forward kinematics are computed link-to-link for a 21-\glspl{dof} humanoid robot through the kinematic closed-form equations in order to obtain improve computation efficiency.
+%
+Similarly, our proposed network learns a link-to-link forward kinematics, but leveraging a \gls{nn} novel architecture which explores \gls{dh} transformations.
 
-\cite{dalla2020autonomous} uses \gls{gpr} for learning the forward kinematics based on vision. The approach considers a monolithic \gls{gp}.
+%\cite{singh2021review} a review on the topic. Nothing new.
+%
+%\cite{valayil2022methods} basically lists methods for solving forward kinematics. \rev{does not really add anything}
 
-\cite{kesaba2022transfer} uses a monolithic \gls{nn} for learning forward kinematics for a 6-\gls{dof} robot manipulator in simulation. The learned model is transferred to a real robot \rev{using the same training signals}. Results show that the real robot achieves higher accuracy.
-
-\cite{kesaba2022forward} seems to be the same as \cite{kesaba2022transfer}.
-
-\cite{sharkawy2022forward} uses a monolithic \gls{nn} for learning forward and inverse kinematics of a 5-\gls{dof} robotic arm \rev{check it out it seems they do it for 2 DoFs}. 
-
-\cite{valayil2022methods} basically lists methods for solving forward kinematics. \rev{does not really add anything}
-
-\cite{sharkawy2023forward} uses a monolithic \gls{nn} for learning forward kinematics of a 3-\gls{dof} robotic arm. 

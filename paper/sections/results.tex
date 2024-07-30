@@ -51,21 +51,21 @@ As result, the proposed architecture is expected to scale better with $\nJoints$
 	\centering
 	\caption{Hyper-parameters found for robots with varying number of joints.}
 	\label{tab: tune fkine}
-	\begin{tabulary}{\linewidth}{c|c|c|c|c|c|c|c}
+	\begin{tabulary}{\linewidth}{c|c|c|c|c|c|c}
 		\toprule
-		\multicolumn{8}{c}{$\nDims=2$} \\\hline
-		\multirow{3}{*}{$\nnLink$} & $\learningRate$ & $a$ & $a$ & $a$ & $a$ & $a$ & $a$ \\\cline{2-8}
-		& $\nLayers$ & $a$ & $a$ & $a$ & $a$ & $a$ & $a$ \\\cline{2-8}
-		& $\layerSize$ & $a$ & $a$ & $a$ & $a$ & $a$ & $a$ \\\cline{2-8}
-		& $\batchSize$ & $a$ & $a$ & $a$ & $a$ & $a$ & $a$ \\\cline{2-8}
-		& $\nParams$ & $a$ & $a$ & $a$ & $a$ & $a$ & $a$ \\
+		\multicolumn{7}{c}{$\nnMono$}\\\hline
+		$\learningRate~(\times10^{-3})$ & $0.816$ & $0.598$ & $0.710$ & $0.944$ & $0.733$ & $0.856$ \\\hline
+		$\nLayers$ & $5$ & $3$ & $4$ & $4$ & $6$ & $7$	 \\\hline
+		$\layerSize$ & $32$ & $64$ & $64$ & $64$ & $64$ & $32$ \\\hline
+		$\batchSize$ & $8$ & $32$ & $64$ & $64$ & $64$ & $16$ \\\hline
+		$\nParams$ & $4518$ & $\mathbf{9161}$ & $13580$ & $13839$ & $22418$ & $\mathbf{7285}$ \\
 		\midrule
-		\multicolumn{8}{c}{$\nDims=3$} \\\hline
-		\multirow{3}{*}{$\nnLink$} & $\learningRate$ & $a$ & $a$ & $a$ & $a$ & $a$ & $a$ \\\cline{2-8}
-		& $\nLayers$ & $a$ & $a$ & $a$ & $a$ & $a$ & $a$ \\\cline{2-8}
-		& $\layerSize$ & $a$ & $a$ & $a$ & $a$ & $a$ & $a$ \\\cline{2-8}
-		& $\batchSize$ & $a$ & $a$ & $a$ & $a$ & $a$ & $a$ \\\cline{2-8}
-		& $\nParams$ & $a$ & $a$ & $a$ & $a$ & $a$ & $a$ \\
+		\multicolumn{7}{c}{$\nnLink$}\\\hline
+		$\learningRate~(\times10^{-3})$ & $0.634$ & $0.996$ & $0.750$ & $0.874$ & $0.820$ & $0.536$ \\\hline
+		$\nLayers$ & $4$ & $5$ & $3$ & $3$ & $6$ & $6$ \\\hline
+		$\layerSize$ & $16$ & $32$ & $32$ & $32$ & $16$ & $16$ \\\hline
+		$\batchSize$ & $32$ & $64$ & $32$ & $32$ & $32$ & $8$ \\\hline
+		$\nParams$ & $\mathbf{2168}$ & $14244$ & $\mathbf{10544}$ & $\mathbf{7900}$ & $\mathbf{9768}$ & $11396$ \\
 		\bottomrule
 	\end{tabulary}
 \end{table}
@@ -118,7 +118,7 @@ Figure \ref{fig: ee vel} shows the velocity estimation and ground-truth obtained
 %
 The better accuracy of the proposed architecture indicates its adequacy for being used in higher level applications, while the monolithic architecture poor accuracy might impact higher level applications badly.
 
-\begin{figure}
+\begin{figure}[t]
 	\includegraphics[width=\linewidth]{fkine_predictions_xdot}
 	\caption{End-effector velocity estimation comparison for $\nnMono$ and $\nnLink$.}
 	\label{fig: ee vel}
