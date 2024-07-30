@@ -28,7 +28,7 @@ While other approximators could be used, e.g., \glspl{gp} as in \cite{dalla2020a
 
 For training $\nn$, we follow the approaches in the literature \rev{citation needed} and use the average Euclidean distance between the joints and their respective prediction, as described in Equation \ref{eq: loss}.
 %
-Note that some approaches in the literature consider only the end-effector position and its prediction, which is reasonable since in a real robot, the position of individual joints is hard to obtain, while the end-effector's position can be obtained with off-the-shelf trackers and cameras \rev{citation}.
+Note that some approaches in the literature consider only the end-effector position and its prediction, which is reasonable since in a real robot, the position of individual joints is hard to obtain, while the end-effector's position can be obtained with off-the-shelf trackers and cameras \cite{dalla2020autonomous}.
 %
 In contrast, since we perform the training in simulation, we have the flexibility of considering all joints, leading to a richer loss signal, improving the training convergence.
 
