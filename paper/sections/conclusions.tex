@@ -1,1 +1,10 @@
 \section{Conclusions}\label{sec: conclusions}
+
+This paper presents a novel \gls{nn} architecture for learning the forward kinematics of serial robot manipulators.
+%
+Instead of a monolithic approach in which the joints positions are estimated with a relatively large \gls{nn}, the proposed architecture leverages the \gls{dh}-Transformation notation, resulting in a link-by-link estimator and keeping a constant complexity for the estimation between links.
+
+Results show that the proposed architecture improves the learning efficiency, regarding to the number of samples, and achieves better precision when compared to the traditional monolithic approach found in the literature.
+%
+Furthermore, the proposed architecture is shown scale better for robots with increasing number of joints.
+ 
