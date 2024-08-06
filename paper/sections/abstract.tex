@@ -1,7 +1,15 @@
 \begin{abstract}
-	...
+	Forward kinematics is arguably the most basic computation on robotics, in which the Cartesian position of a given joint is computed from the joints positions.
+	%
+	While industrial robots realize this computation using precise models, generic or built-in-house robots require learning a forward kinematics model, which is done in the literature by the means of a large monolithic function approximator that directly maps joints positions into Cartesian coordinates for each joint.
+	%
+	Despite the monolithic approach success, these models fail to capture the forward kinematics linked nature, in which the estimation of one joint is linked to the previous one's estimation.
+	%
+	Towards improving the forward kinematics learning, this paper leverages the \acrlong{dh} transformations notation for constructing a novel \acrlong{nn} architecture that realizes linked forward kinematics estimations.
+	%
+	The proposed architecture is shown to improve learning efficiency and accuracy when compared to the traditional monolithic architectures found in the literature using simulated robotic serial manipulators with up to $7$ joints.
 \end{abstract}
 
 \begin{IEEEkeywords}
-	A, B, C.
+	Forward Kinematics, Robotic Manipulator, ETC.
 \end{IEEEkeywords}
