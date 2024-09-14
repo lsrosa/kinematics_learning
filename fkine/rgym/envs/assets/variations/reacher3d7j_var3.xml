@@ -1,0 +1,64 @@
+<mujoco model="reacher">
+  <compiler angle="radian" inertiafromgeom="true"/>
+  <option timestep="0.01" gravity="0 0 -9.81" integrator="RK4"/>
+  <default>
+    <default class="/">
+      <joint limited="true" armature="1" damping="1"/>
+      <geom contype="0" rgba="0.7 0.7 0 1" friction="1 0.1 0.1"/>
+    </default>
+  </default>
+  <custom>
+    <numeric name="ndims" size="1" data="3"/>
+    <numeric name="njoints" size="1" data="7"/>
+  </custom>
+  <worldbody>
+    <geom name="ground" class="/" type="plane" contype="0" conaffinity="0" size="1 1 10" rgba="0.9 0.9 0.9 1" pos="0 0 0"/>
+    <geom name="root" class="/" type="cylinder" contype="0" conaffinity="0" size="0.011" rgba="0.9 0.4 0.6 1" fromto="0 0 0 0 0 0.02"/>
+    <body name="base" pos="0 0 0.01">
+      <geom name="link0" class="/" type="capsule" size="0.01" rgba="0 0.4 0.6 1" fromto="0 0 0 0 0 0.09479"/>
+      <joint name="j0" class="/" type="hinge" pos="0 0 0" axis="0 0 1" limited="true" range="-3 3"/>
+      <body name="j0" pos="0 0 0.09479">
+        <geom name="link1" class="/" type="capsule" size="0.01" rgba="0 0.4 0.6 1" fromto="0 0 0 0 0 0.1065"/>
+        <joint name="j1" class="/" type="hinge" pos="0 0 0" axis="1 0 0" limited="true" range="-3 3"/>
+        <body name="j1" pos="0 0 0.1065">
+          <geom name="link2" class="/" type="capsule" size="0.01" rgba="0 0.4 0.6 1" fromto="0 0 0 0 0 0.09863"/>
+          <joint name="j2" class="/" type="hinge" pos="0 0 0" axis="0 0 1" limited="true" range="-3 3"/>
+          <body name="j2" pos="0 0 0.09863">
+            <geom name="link3" class="/" type="capsule" size="0.01" rgba="0 0.4 0.6 1" fromto="0 0 0 0 0 0.1094"/>
+            <joint name="j3" class="/" type="hinge" pos="0 0 0" axis="1 0 0" limited="true" range="-3 3"/>
+            <body name="j3" pos="0 0 0.1094">
+              <geom name="link4" class="/" type="capsule" size="0.01" rgba="0 0.4 0.6 1" fromto="0 0 0 0 0 0.1078"/>
+              <joint name="j4" class="/" type="hinge" pos="0 0 0" axis="0 0 1" limited="true" range="-3 3"/>
+              <body name="j4" pos="0 0 0.1078">
+                <geom name="link5" class="/" type="capsule" size="0.01" rgba="0 0.4 0.6 1" fromto="0 0 0 0 0 0.1179"/>
+                <joint name="j5" class="/" type="hinge" pos="0 0 0" axis="1 0 0" limited="true" range="-3 3"/>
+                <body name="j5" pos="0 0 0.1179">
+                  <geom name="link6" class="/" type="capsule" size="0.01" rgba="0 0.4 0.6 1" fromto="0 0 0 0 0 0.1177"/>
+                  <joint name="j6" class="/" type="hinge" pos="0 0 0" axis="0 1 0" limited="true" range="-3 3"/>
+                  <body name="j6" pos="0 0 0.1177">
+                    <geom name="fingertip" class="/" type="sphere" contype="0" size="0.01" rgba="0 0.8 0.6 1" pos="0 0 0"/>
+                  </body>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+    <body name="target" pos="0.1 -0.1 0.01" gravcomp="1">
+      <joint name="target_x" class="/" type="slide" pos="0 0 0" axis="1 0 0" limited="false" armature="0" damping="0"/>
+      <joint name="target_y" class="/" type="slide" pos="0 0 0" axis="0 1 0" limited="false" armature="0" damping="0"/>
+      <joint name="target_z" class="/" type="slide" pos="0 0 0" axis="0 0 1" limited="false" armature="0" damping="0"/>
+      <geom name="target" class="/" type="sphere" contype="0" conaffinity="0" size="0.009" rgba="0.9 0.2 0.2 1" pos="0 0 0"/>
+    </body>
+  </worldbody>
+  <actuator>
+    <motor name="//unnamed_actuator_0" class="/" ctrllimited="true" ctrlrange="-1 1" gear="200" joint="j0"/>
+    <motor name="//unnamed_actuator_1" class="/" ctrllimited="true" ctrlrange="-1 1" gear="200" joint="j1"/>
+    <motor name="//unnamed_actuator_2" class="/" ctrllimited="true" ctrlrange="-1 1" gear="200" joint="j2"/>
+    <motor name="//unnamed_actuator_3" class="/" ctrllimited="true" ctrlrange="-1 1" gear="200" joint="j3"/>
+    <motor name="//unnamed_actuator_4" class="/" ctrllimited="true" ctrlrange="-1 1" gear="200" joint="j4"/>
+    <motor name="//unnamed_actuator_5" class="/" ctrllimited="true" ctrlrange="-1 1" gear="200" joint="j5"/>
+    <motor name="//unnamed_actuator_6" class="/" ctrllimited="true" ctrlrange="-1 1" gear="200" joint="j6"/>
+  </actuator>
+</mujoco>
