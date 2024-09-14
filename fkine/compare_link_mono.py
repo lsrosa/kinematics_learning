@@ -85,10 +85,10 @@ def compare(models_dir, results_dir, plots_dir, model_kwargs_link, model_kwargs_
         y_dot_pred_mono = torch.zeros(n, n_dims)
         for i in range(n):
             print('sample: ', i)
-            jacobian_link,_ = torch.autograd.functional.jacobian(fkine_link_net, q_link[i])
-            jacobian_mono = torch.autograd.functional.jacobian(fkine_mono_net, q_mono[i])
-            _j_link = jacobian_link[:,:,1].reshape(n_dims, n_joints)
-            _j_mono = jacobian_mono[:,:,1].reshape(n_dims, n_joints)
+            #jacobian_link,_ = torch.autograd.functional.jacobian(fkine_link_net, q_link[i])
+            #jacobian_mono = torch.autograd.functional.jacobian(fkine_mono_net, q_mono[i])
+            _j_link = torch.zeros(n_dims, n_joints).to(device) #jacobian_link[:,:,1].reshape(n_dims, n_joints)
+            _j_mono = torch.zeros(n_dims, n_joints).to(device) #jacobian_mono[:,:,1].reshape(n_dims, n_joints)
             
             y_dot_pred_link[i] = torch.matmul(_j_link, q_dot[i,:,None]).flatten()
             y_dot_pred_mono[i] = torch.matmul(_j_mono, q_dot[i,:,None]).flatten()
@@ -164,8 +164,8 @@ def compare(models_dir, results_dir, plots_dir, model_kwargs_link, model_kwargs_
         plt.close() 
         
         # Plot errors histogram
-        error_joints_link = (y_pred_link.cpu() - y).norm(dim=1).transpose(0,1)
-        error_joints_mono = (y_pred_mono.cpu() - y).norm(dim=1).transpose(0,1)
+        error_joints_link = ((y_pred_link.cpu() - y).norm(dim=1)/torch.tensor(y).norm()).transpose(0,1)
+        error_joints_mono = ((y_pred_mono.cpu() - y).norm(dim=1)/torch.tensor(y).norm()).transpose(0,1)
         _min_error = min(error_joints_link.min(), error_joints_mono.min())
         _max_error = max(error_joints_link.max(), error_joints_mono.max())
         bins = np.linspace(_min_error*0.9, _max_error*1.1, 50)
@@ -175,40 +175,11 @@ def compare(models_dir, results_dir, plots_dir, model_kwargs_link, model_kwargs_
             df = pandas.DataFrame({r'$\Phi^l$': error_joints_link[j], r'$\Phi^m$': error_joints_mono[j]})
             seaborn.histplot(data=df, bins=bins, palette=colors[0:2], common_norm=False, stat='percent', shrink=0.8, ax=ax, legend=(j==0), common_bins=False, kde=False, kde_kws={'clip':[_min_error*0.9, _max_error*1.1], 'cut':10})
             ax.title.set_text('Joint %d'%(j+1))
-            ax.set_xlabel('Error')
+            ax.set_xlabel(r'Error (\%)')
             if j == 0:
                 ax.set_ylabel(r'\# Samples (\%)')
         plt.savefig(plots_dir+'/fkine_errors_hist_x_%s%s.pdf'%(_suffix, _run), dpi=1200, bbox_inches='tight')
         plt.close() 
-        
-        # plot errors correlations
-        fig, axs = plt.subplots(1, 1, sharex='all', sharey='all', figsize=(4, 4))
-        _x_corr_label = r'$<||x_{%d} - \tilde{x}_{%d}||>$'%(0, 0)
-        _phi_link_label = [r'$\Phi^l$' for i in range(n_samples)]
-        _phi_mono_label = [r'$\Phi^m$' for i in range(n_samples)]
-        
-        #normalize
-        _error_joints_link_norm = error_joints_link[0] - error_joints_link[0].min()
-        _error_joints_link_norm /= _error_joints_link_norm.max()
-        _error_joints_mono_norm = error_joints_mono[0] - error_joints_mono[0].min()
-        _error_joints_mono_norm /= _error_joints_mono_norm.max()
-        _x_corr = np.hstack((_error_joints_link_norm, _error_joints_mono_norm))
-        df = pandas.DataFrame({
-            'Arch': _phi_link_label+_phi_mono_label,
-            _x_corr_label : _x_corr,
-            })
-        ax = axs
-        _y_corr_label = r'$<||x_{%d} - \tilde{x}_{%d}||>$'%(j+1, j+1)
-        _error_joints_link_norm = error_joints_link[n_joints-1] - error_joints_link[n_joints-1].min()
-        _error_joints_link_norm /= _error_joints_link_norm.max()
-        _error_joints_mono_norm = error_joints_mono[n_joints-1] - error_joints_mono[n_joints-1].min()
-        _error_joints_mono_norm /= _error_joints_mono_norm.max()
-        _y_corr = np.hstack((_error_joints_link_norm, _error_joints_mono_norm))
-        df[_y_corr_label] = _y_corr 
-        seaborn.scatterplot(data=df, ax=ax, x=_x_corr_label, y=_y_corr_label, hue='Arch', palette=colors[0:2], alpha=0.5)
-        plt.savefig(plots_dir+'/fkine_errors_correlations_%s%s.pdf'%(_suffix, _run), dpi=1200, bbox_inches='tight')
-        plt.close() 
-
     return
 
 def plot_loss_comparison(results_dir, plots_dir):
@@ -242,7 +213,8 @@ def plot_loss_comparison(results_dir, plots_dir):
             mean_mono = np.mean(losses_mono, axis=0)
             df = pandas.DataFrame({r'$\Phi^l$': mean_link, r'$\Phi^m$': mean_mono})
 
-            seaborn.lineplot(df, ax=ax, alpha=0.8, palette=colors, legend=(j==0 and j==0))
+            g = seaborn.lineplot(df, ax=ax, alpha=0.8, palette=colors, legend=(j==0 and j==0))
+            g.set(yscale='log')
             ax.set_xlabel('Epochs')
             if n_joints==2: 
                 ax.set_ylabel(r'$\mathcal{L}$')
@@ -264,17 +236,18 @@ if __name__ == '__main__':
     learn_kwargs_link = dict()
     learn_kwargs_link['seed'] = 1
     learn_kwargs_link['n_rollouts'] = 100
-    learn_kwargs_link['learn_steps'] = 3000 
+    learn_kwargs_link['learn_steps'] = 5000 
     learn_kwargs_link['n_envs'] = 32 
     learn_kwargs_link['n_iter'] = 25 
     learn_kwargs_link['append'] = False 
     learn_kwargs_link['refine'] = True 
     learn_kwargs_mono = learn_kwargs_link.copy()
     
-    n_runs = 5
+    n_runs = 30
+    n_samples = 100
 
     for n_dims in [3]:#, 2]:
-        for _nj, n_joints in enumerate([7]):#, 6, 5, 4, 3, 2]):
+        for _nj, n_joints in enumerate([7, 6, 5, 4, 3, 2]):
             print('dims: ', n_dims, '   joints: ', n_joints)
             hp_file_link = sorted(list(hyperparams_dir.glob('reacher%dd%dj_FKineLinked_hyperparams.pickle'%(n_dims, n_joints))))
             hp_file_mono = sorted(list(hyperparams_dir.glob('reacher%dd%dj_FKineMono_hyperparams.pickle'%(n_dims, n_joints))))
@@ -306,7 +279,7 @@ if __name__ == '__main__':
             for run in range(n_runs):
                 learn('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_mono, learn_kwargs_mono, device=device)
 
-            compare('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_link, model_kwargs_mono, n_samples=100, sampling_strat='walk', device=device)
+            compare('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_link, model_kwargs_mono, n_samples=10, sampling_strat='walk', device=device)
             #break
 
             print('\n\n\n\n')
