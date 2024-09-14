@@ -86,6 +86,9 @@ class FKineLinked(nn.Module):
         return y, t 
 
     def loss_fkine(self, y_pred, y):
+        # train using just the end effector
+        #ret = (y_pred[:,:,-1]-y[:,:,-1]).norm(dim=1).mean()
+        # train using just all joints 
         ret = (y_pred-y).norm(dim=1).mean()
         return ret
 
@@ -109,8 +112,8 @@ class FKineLinked(nn.Module):
         self._optim.zero_grad()
         loss.backward()
         self._optim.step()
+
         '''
-        mean_soss = 0
         #print('link train',q)
         for j in range(self.n_joints):
             #print('joint: ', j)

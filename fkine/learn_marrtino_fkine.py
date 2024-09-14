@@ -82,21 +82,19 @@ if __name__ == '__main__':
     learn_kwargs['learn_steps'] = 3000 
     learn_kwargs['n_envs'] = 32 
     learn_kwargs['n_iter'] = 25 
-    learn_kwargs['append'] = False 
-    learn_kwargs['refine'] = True 
+    learn_kwargs['append'] = True 
+    learn_kwargs['refine'] = False 
     
-    n_runs = 5
     n_dims = 3
     n_joints = 5
     
-    print('dims: ', n_dims, '   joints: ', n_joints)
-    hp_file = sorted(list(hyperparams_dir.glob('reacher%dd%dj_FKineLinked_hyperparams.pickle'%(n_dims, n_joints))))
-
     model_kwargs = dict()
-    model_kwargs['model'] = 'FKineLinked'
+    model_kwargs['model'] = 'FKineMono'
     model_kwargs['n_dims'] = n_dims 
     model_kwargs['n_joints'] = n_joints
     
+    print('dims: ', n_dims, '   joints: ', n_joints)
+    hp_file = sorted(list(hyperparams_dir.glob('reacher%dd%dj_FKineMono_hyperparams.pickle'%(n_dims, n_joints))))
     learn_params, model_params, n_params = get_hyper_params(hp_file[0])
     print('link: ', learn_params, model_params, n_params)
     model_kwargs.update(model_params)

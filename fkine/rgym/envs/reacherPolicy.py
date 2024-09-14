@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, SupportsFloat, Any, TypeVar
 
 from gymnasium.core import ActType, ObsType, WrapperObsType
 from gymnasium.spaces import Box
-from gymnasium.wrappers import FrameStack
 from gymnasium import RewardWrapper
 
 from rgym.envs.ex_reacher_v0 import ExReacherEnv
