@@ -109,7 +109,7 @@ class FKineLinked(nn.Module):
         self._optim.zero_grad()
         loss.backward()
         self._optim.step()
-        mean_loss = 0
+
         '''
         #print('link train',q)
         for j in range(self.n_joints):
