@@ -234,16 +234,16 @@ if __name__ == '__main__':
 
     learn_kwargs_link = dict()
     learn_kwargs_link['seed'] = 1
-    learn_kwargs_link['n_rollouts'] = 10#0
-    learn_kwargs_link['learn_steps'] = 30#00 
+    learn_kwargs_link['n_rollouts'] = 100
+    learn_kwargs_link['learn_steps'] = 3000 
     learn_kwargs_link['n_envs'] = 32 
-    learn_kwargs_link['n_iter'] = 2#5 
+    learn_kwargs_link['n_iter'] = 25 
     learn_kwargs_link['append'] = True 
     learn_kwargs_link['refine'] = False 
     learn_kwargs_mono = learn_kwargs_link.copy()
     
-    n_runs = 3#5
-    n_samples = 10#0
+    n_runs = 10
+    n_samples = 100
 
     for n_dims in [3]:#, 2]:
         for _nj, n_joints in enumerate([7, 6, 5, 4, 3, 2]):
