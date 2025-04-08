@@ -237,12 +237,13 @@ if __name__ == '__main__':
     learn_kwargs_link['n_rollouts'] = 100
     learn_kwargs_link['learn_steps'] = 3000 
     learn_kwargs_link['n_envs'] = 32 
-    learn_kwargs_link['n_iter'] = 25 
+    learn_kwargs_link['n_iter'] = 5 
     learn_kwargs_link['append'] = True 
     learn_kwargs_link['refine'] = False 
     learn_kwargs_mono = learn_kwargs_link.copy()
     
     n_runs = 5
+    n_samples = 100
 
     for n_dims in [3]:#, 2]:
         for _nj, n_joints in enumerate([7, 6, 5, 4, 3, 2]):
@@ -277,7 +278,7 @@ if __name__ == '__main__':
             for run in range(n_runs):
                 learn('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_mono, learn_kwargs_mono, device=device)
 
-            compare('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_link, model_kwargs_mono, n_samples=10, sampling_strat='walk', device=device)
+            compare('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_link, model_kwargs_mono, n_samples=n_samples, sampling_strat='walk', device=device)
             #break
 
             print('\n\n\n\n')
