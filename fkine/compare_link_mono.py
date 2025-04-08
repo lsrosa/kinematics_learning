@@ -180,7 +180,7 @@ def compare(models_dir, results_dir, plots_dir, model_kwargs_link, model_kwargs_
                 ax.set_ylabel(r'\# Samples (\%)')
         plt.savefig(plots_dir+'/fkine_errors_hist_x_%s%s.pdf'%(_suffix, _run), dpi=1200, bbox_inches='tight')
         plt.close() 
-        
+        ''' 
         # plot errors correlations
         fig, axs = plt.subplots(1, 1, sharex='all', sharey='all', figsize=(4, 4))
         _x_corr_label = r'$<||x_{%d} - \tilde{x}_{%d}||>$'%(0, 0)
@@ -208,7 +208,7 @@ def compare(models_dir, results_dir, plots_dir, model_kwargs_link, model_kwargs_
         seaborn.scatterplot(data=df, ax=ax, x=_x_corr_label, y=_y_corr_label, hue='Arch', palette=colors[0:2], alpha=0.5)
         plt.savefig(plots_dir+'/fkine_errors_correlations_%s%s.pdf'%(_suffix, _run), dpi=1200, bbox_inches='tight')
         plt.close() 
-
+        '''
     return
 
 def plot_loss_comparison(results_dir, plots_dir):
@@ -263,18 +263,18 @@ if __name__ == '__main__':
 
     learn_kwargs_link = dict()
     learn_kwargs_link['seed'] = 1
-    learn_kwargs_link['n_rollouts'] = 100
-    learn_kwargs_link['learn_steps'] = 3000 
+    learn_kwargs_link['n_rollouts'] = 1#00
+    learn_kwargs_link['learn_steps'] = 3#00 
     learn_kwargs_link['n_envs'] = 32 
-    learn_kwargs_link['n_iter'] = 25 
+    learn_kwargs_link['n_iter'] = 2#5 
     learn_kwargs_link['append'] = False 
     learn_kwargs_link['refine'] = True 
     learn_kwargs_mono = learn_kwargs_link.copy()
     
-    n_runs = 5
+    n_runs = 3#5
 
     for n_dims in [3]:#, 2]:
-        for _nj, n_joints in enumerate([7]):#, 6, 5, 4, 3, 2]):
+        for _nj, n_joints in enumerate([7, 6, 5, 4, 3, 2]):
             print('dims: ', n_dims, '   joints: ', n_joints)
             hp_file_link = sorted(list(hyperparams_dir.glob('reacher%dd%dj_FKineLinked_hyperparams.pickle'%(n_dims, n_joints))))
             hp_file_mono = sorted(list(hyperparams_dir.glob('reacher%dd%dj_FKineMono_hyperparams.pickle'%(n_dims, n_joints))))
@@ -306,7 +306,7 @@ if __name__ == '__main__':
             for run in range(n_runs):
                 learn('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_mono, learn_kwargs_mono, device=device)
 
-            compare('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_link, model_kwargs_mono, n_samples=100, sampling_strat='walk', device=device)
+            compare('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_link, model_kwargs_mono, n_samples=10, sampling_strat='walk', device=device)
             #break
 
             print('\n\n\n\n')

@@ -86,6 +86,7 @@ class FKineLinked(nn.Module):
         return y, t 
 
     def loss_fkine(self, y_pred, y):
+        print(y_pred)
         ret = (y_pred-y).norm(dim=1).mean()
         return ret
 
