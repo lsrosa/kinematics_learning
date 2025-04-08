@@ -86,8 +86,7 @@ class FKineLinked(nn.Module):
         return y, t 
 
     def loss_fkine(self, y_pred, y):
-        print(y_pred)
-        ret = (y_pred-y).norm(dim=1).mean()
+        ret = (y_pred[:,:,-1]-y[:,:,-1]).norm(dim=1).mean()
         return ret
 
     def loss_rot_matrix(self, t):
@@ -110,8 +109,8 @@ class FKineLinked(nn.Module):
         self._optim.zero_grad()
         loss.backward()
         self._optim.step()
+        mean_loss = 0
         '''
-        mean_soss = 0
         #print('link train',q)
         for j in range(self.n_joints):
             #print('joint: ', j)

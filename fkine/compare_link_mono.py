@@ -164,8 +164,8 @@ def compare(models_dir, results_dir, plots_dir, model_kwargs_link, model_kwargs_
         plt.close() 
         
         # Plot errors histogram
-        error_joints_link = (y_pred_link.cpu() - y).norm(dim=1).transpose(0,1)
-        error_joints_mono = (y_pred_mono.cpu() - y).norm(dim=1).transpose(0,1)
+        error_joints_link = ((y_pred_link.cpu() - y).norm(dim=1)/y.norm()).transpose(0,1)
+        error_joints_mono = ((y_pred_mono.cpu() - y).norm(dim=1)/y.norm()).transpose(0,1)
         _min_error = min(error_joints_link.min(), error_joints_mono.min())
         _max_error = max(error_joints_link.max(), error_joints_mono.max())
         bins = np.linspace(_min_error*0.9, _max_error*1.1, 50)
@@ -175,40 +175,11 @@ def compare(models_dir, results_dir, plots_dir, model_kwargs_link, model_kwargs_
             df = pandas.DataFrame({r'$\Phi^l$': error_joints_link[j], r'$\Phi^m$': error_joints_mono[j]})
             seaborn.histplot(data=df, bins=bins, palette=colors[0:2], common_norm=False, stat='percent', shrink=0.8, ax=ax, legend=(j==0), common_bins=False, kde=False, kde_kws={'clip':[_min_error*0.9, _max_error*1.1], 'cut':10})
             ax.title.set_text('Joint %d'%(j+1))
-            ax.set_xlabel('Error')
+            ax.set_xlabel('Error (%)')
             if j == 0:
                 ax.set_ylabel(r'\# Samples (\%)')
         plt.savefig(plots_dir+'/fkine_errors_hist_x_%s%s.pdf'%(_suffix, _run), dpi=1200, bbox_inches='tight')
         plt.close() 
-        ''' 
-        # plot errors correlations
-        fig, axs = plt.subplots(1, 1, sharex='all', sharey='all', figsize=(4, 4))
-        _x_corr_label = r'$<||x_{%d} - \tilde{x}_{%d}||>$'%(0, 0)
-        _phi_link_label = [r'$\Phi^l$' for i in range(n_samples)]
-        _phi_mono_label = [r'$\Phi^m$' for i in range(n_samples)]
-        
-        #normalize
-        _error_joints_link_norm = error_joints_link[0] - error_joints_link[0].min()
-        _error_joints_link_norm /= _error_joints_link_norm.max()
-        _error_joints_mono_norm = error_joints_mono[0] - error_joints_mono[0].min()
-        _error_joints_mono_norm /= _error_joints_mono_norm.max()
-        _x_corr = np.hstack((_error_joints_link_norm, _error_joints_mono_norm))
-        df = pandas.DataFrame({
-            'Arch': _phi_link_label+_phi_mono_label,
-            _x_corr_label : _x_corr,
-            })
-        ax = axs
-        _y_corr_label = r'$<||x_{%d} - \tilde{x}_{%d}||>$'%(j+1, j+1)
-        _error_joints_link_norm = error_joints_link[n_joints-1] - error_joints_link[n_joints-1].min()
-        _error_joints_link_norm /= _error_joints_link_norm.max()
-        _error_joints_mono_norm = error_joints_mono[n_joints-1] - error_joints_mono[n_joints-1].min()
-        _error_joints_mono_norm /= _error_joints_mono_norm.max()
-        _y_corr = np.hstack((_error_joints_link_norm, _error_joints_mono_norm))
-        df[_y_corr_label] = _y_corr 
-        seaborn.scatterplot(data=df, ax=ax, x=_x_corr_label, y=_y_corr_label, hue='Arch', palette=colors[0:2], alpha=0.5)
-        plt.savefig(plots_dir+'/fkine_errors_correlations_%s%s.pdf'%(_suffix, _run), dpi=1200, bbox_inches='tight')
-        plt.close() 
-        '''
     return
 
 def plot_loss_comparison(results_dir, plots_dir):
@@ -264,7 +235,7 @@ if __name__ == '__main__':
     learn_kwargs_link = dict()
     learn_kwargs_link['seed'] = 1
     learn_kwargs_link['n_rollouts'] = 1#00
-    learn_kwargs_link['learn_steps'] = 3#00 
+    learn_kwargs_link['learn_steps'] = 3#000 
     learn_kwargs_link['n_envs'] = 32 
     learn_kwargs_link['n_iter'] = 2#5 
     learn_kwargs_link['append'] = False 
