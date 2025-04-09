@@ -213,7 +213,8 @@ def plot_loss_comparison(results_dir, plots_dir):
             mean_mono = np.mean(losses_mono, axis=0)
             df = pandas.DataFrame({r'$\Phi^l$': mean_link, r'$\Phi^m$': mean_mono})
 
-            seaborn.lineplot(df, ax=ax, alpha=0.8, palette=colors, legend=(j==0 and j==0))
+            g = seaborn.lineplot(df, ax=ax, alpha=0.8, palette=colors, legend=(j==0 and j==0))
+            g.set(yscale='log')
             ax.set_xlabel('Epochs')
             if n_joints==2: 
                 ax.set_ylabel(r'$\mathcal{L}$')
