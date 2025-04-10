@@ -239,8 +239,8 @@ if __name__ == '__main__':
     learn_kwargs_link['learn_steps'] = 3000 
     learn_kwargs_link['n_envs'] = 32 
     learn_kwargs_link['n_iter'] = 25 
-    learn_kwargs_link['append'] = True 
-    learn_kwargs_link['refine'] = False 
+    learn_kwargs_link['append'] = False 
+    learn_kwargs_link['refine'] = True 
     learn_kwargs_mono = learn_kwargs_link.copy()
     
     n_runs = 10
