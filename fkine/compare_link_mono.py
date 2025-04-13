@@ -84,11 +84,10 @@ def compare(models_dir, results_dir, plots_dir, model_kwargs_link, model_kwargs_
         y_dot_pred_link = torch.zeros(n, n_dims)
         y_dot_pred_mono = torch.zeros(n, n_dims)
         for i in range(n):
-            print('sample: ', i)
-            #jacobian_link,_ = torch.autograd.functional.jacobian(fkine_link_net, q_link[i])
-            #jacobian_mono = torch.autograd.functional.jacobian(fkine_mono_net, q_mono[i])
-            _j_link = torch.zeros(n_dims, n_joints).to(device) #jacobian_link[:,:,1].reshape(n_dims, n_joints)
-            _j_mono = torch.zeros(n_dims, n_joints).to(device) #jacobian_mono[:,:,1].reshape(n_dims, n_joints)
+            jacobian_link,_ = torch.autograd.functional.jacobian(fkine_link_net, q_link[i])
+            jacobian_mono = torch.autograd.functional.jacobian(fkine_mono_net, q_mono[i])
+            _j_link = jacobian_link[:,:,1].reshape(n_dims, n_joints)
+            _j_mono = jacobian_mono[:,:,1].reshape(n_dims, n_joints)
             
             y_dot_pred_link[i] = torch.matmul(_j_link, q_dot[i,:,None]).flatten()
             y_dot_pred_mono[i] = torch.matmul(_j_mono, q_dot[i,:,None]).flatten()
@@ -144,7 +143,7 @@ def compare(models_dir, results_dir, plots_dir, model_kwargs_link, model_kwargs_
                 seaborn.lineplot(df, ax=ax, alpha=0.8, palette=colors, legend=(d==0 and j==0))
                 if d==0: ax.title.set_text('Joint %d'%(j+1))
                 ax.set_xlabel('Step')
-                ax.set_ylabel(_y_labels[idx])
+                ax.set_ylabel(_y_labels[idx]+' (m)')
         plt.savefig(plots_dir+'/fkine_predictions_x_%s%s.pdf'%(_suffix, _run), dpi=1200, bbox_inches='tight')
         plt.close()
 
@@ -159,7 +158,7 @@ def compare(models_dir, results_dir, plots_dir, model_kwargs_link, model_kwargs_
             seaborn.lineplot(df, ax=ax, alpha=0.8, palette=colors, legend=(d==0))
             if d==0: seaborn.move_legend(ax, "lower center", ncol=3, title=None, bbox_to_anchor=(.5, 1))
             ax.set_xlabel('Step')
-            ax.set_ylabel(_y_labels[d])
+            ax.set_ylabel(_y_labels[d]+' (m/s)')
         plt.savefig(plots_dir+'/fkine_predictions_xdot_%s%s.pdf'%(_suffix, _run), dpi=1200, bbox_inches='tight')
         plt.close() 
         
@@ -192,7 +191,7 @@ def plot_loss_comparison(results_dir, plots_dir):
     colors = [next(palette) for i in range(2)]
     
     for d, n_dims in enumerate([3]):#, 2]):
-        for j, n_joints in enumerate([2, 3, 4, 5, 6, 7]):
+        for j, n_joints in enumerate([7, 6, 5, 4, 3, 2]):
             loss_link_file = sorted(list(results_dir.glob("fkine_FKineLinked_%dd%dj_*.pickle"%(n_dims, n_joints))))
             loss_mono_file = sorted(list(results_dir.glob("fkine_FKineMono_%dd%dj_*.pickle"%(n_dims, n_joints))))
             if (not loss_link_file) or (not loss_mono_file):
@@ -216,6 +215,7 @@ def plot_loss_comparison(results_dir, plots_dir):
             g = seaborn.lineplot(df, ax=ax, alpha=0.8, palette=colors, legend=(j==0 and j==0))
             g.set(yscale='log')
             ax.set_xlabel('Epochs')
+            ax.set_ylim([0., 0.7])
             if n_joints==2: 
                 ax.set_ylabel(r'$\mathcal{L}$')
             
@@ -247,7 +247,7 @@ if __name__ == '__main__':
     n_samples = 100
 
     for n_dims in [3]:#, 2]:
-        for _nj, n_joints in enumerate([7, 6, 5, 4, 3, 2]):
+        for _nj, n_joints in enumerate([7]): #, 6, 5, 4, 3, 2]):
             print('dims: ', n_dims, '   joints: ', n_joints)
             hp_file_link = sorted(list(hyperparams_dir.glob('reacher%dd%dj_FKineLinked_hyperparams.pickle'%(n_dims, n_joints))))
             hp_file_mono = sorted(list(hyperparams_dir.glob('reacher%dd%dj_FKineMono_hyperparams.pickle'%(n_dims, n_joints))))
@@ -266,8 +266,8 @@ if __name__ == '__main__':
             print('link: ', learn_params, model_params, n_params)
             model_kwargs_link.update(model_params)
             learn_kwargs_link.update(learn_params)
-            for run in range(n_runs):
-                learn('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_link, learn_kwargs_link, device=device)
+            #for run in range(n_runs):
+            #    learn('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_link, learn_kwargs_link, device=device)
     
             model_kwargs_mono['model'] = 'FKineMono'
             model_kwargs_mono['n_dims'] = n_dims 
@@ -276,15 +276,15 @@ if __name__ == '__main__':
             print('mono: ', learn_params, model_params, n_params)
             model_kwargs_mono.update(model_params)
             learn_kwargs_mono.update(learn_params)
-            for run in range(n_runs):
-                learn('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_mono, learn_kwargs_mono, device=device)
+            #for run in range(n_runs):
+            #    learn('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_mono, learn_kwargs_mono, device=device)
 
-            compare('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_link, model_kwargs_mono, n_samples=10, sampling_strat='walk', device=device)
+            compare('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_link, model_kwargs_mono, n_samples=n_samples, sampling_strat='walk', device=device)
             #break
 
             print('\n\n\n\n')
         #break
-    plot_loss_comparison('compare/results', 'compare/plots')
+    #plot_loss_comparison('compare/results', 'compare/plots')
     #quit()
 
 
