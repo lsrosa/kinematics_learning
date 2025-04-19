@@ -239,15 +239,15 @@ if __name__ == '__main__':
     learn_kwargs_link['learn_steps'] = 5000 
     learn_kwargs_link['n_envs'] = 32 
     learn_kwargs_link['n_iter'] = 25 
-    learn_kwargs_link['append'] = False 
-    learn_kwargs_link['refine'] = True 
+    learn_kwargs_link['append'] = True 
+    learn_kwargs_link['refine'] = False 
     learn_kwargs_mono = learn_kwargs_link.copy()
     
-    n_runs = 30
+    n_runs = 10
     n_samples = 100
 
     for n_dims in [3]:#, 2]:
-        for _nj, n_joints in enumerate([7]): #, 6, 5, 4, 3, 2]):
+        for _nj, n_joints in enumerate([7, 6, 5, 4, 3, 2]):
             print('dims: ', n_dims, '   joints: ', n_joints)
             hp_file_link = sorted(list(hyperparams_dir.glob('reacher%dd%dj_FKineLinked_hyperparams.pickle'%(n_dims, n_joints))))
             hp_file_mono = sorted(list(hyperparams_dir.glob('reacher%dd%dj_FKineMono_hyperparams.pickle'%(n_dims, n_joints))))
@@ -266,8 +266,8 @@ if __name__ == '__main__':
             print('link: ', learn_params, model_params, n_params)
             model_kwargs_link.update(model_params)
             learn_kwargs_link.update(learn_params)
-            #for run in range(n_runs):
-            #    learn('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_link, learn_kwargs_link, device=device)
+            for run in range(n_runs):
+                learn('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_link, learn_kwargs_link, device=device)
     
             model_kwargs_mono['model'] = 'FKineMono'
             model_kwargs_mono['n_dims'] = n_dims 
@@ -276,8 +276,8 @@ if __name__ == '__main__':
             print('mono: ', learn_params, model_params, n_params)
             model_kwargs_mono.update(model_params)
             learn_kwargs_mono.update(learn_params)
-            #for run in range(n_runs):
-            #    learn('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_mono, learn_kwargs_mono, device=device)
+            for run in range(n_runs):
+                learn('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_mono, learn_kwargs_mono, device=device)
 
             compare('results/fkine_models', 'compare/results', 'compare/plots', model_kwargs_link, model_kwargs_mono, n_samples=n_samples, sampling_strat='walk', device=device)
             #break
