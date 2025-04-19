@@ -247,7 +247,7 @@ if __name__ == '__main__':
     n_samples = 100
 
     for n_dims in [3]:#, 2]:
-        for _nj, n_joints in enumerate([5, 4]):[7, 6, 5, 4, 3, 2]):
+        for _nj, n_joints in enumerate([5, 4]): #[7, 6, 5, 4, 3, 2]):
             print('dims: ', n_dims, '   joints: ', n_joints)
             hp_file_link = sorted(list(hyperparams_dir.glob('reacher%dd%dj_FKineLinked_hyperparams.pickle'%(n_dims, n_joints))))
             hp_file_mono = sorted(list(hyperparams_dir.glob('reacher%dd%dj_FKineMono_hyperparams.pickle'%(n_dims, n_joints))))
