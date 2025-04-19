@@ -19,7 +19,7 @@ from glob import glob
 
 # check device
 if torch.cuda.is_available():
-    device = torch.device(torch.cuda.current_device()) 
+    device = torch.device('cuda:1')#torch.cuda.current_device()) 
     device_name = torch.cuda.get_device_name()
     print("Using GPU %s" %device_name)
 else:
